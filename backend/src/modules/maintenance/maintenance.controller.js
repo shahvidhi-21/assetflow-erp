@@ -129,9 +129,9 @@ async function updateRequestStatus(req, res, next) {
     // TECHNICIAN_ASSIGNED -> IN_PROGRESS
     // IN_PROGRESS -> COMPLETED
     const validTransitions = {
-      PENDING: ['APPROVED'],
-      APPROVED: ['TECHNICIAN_ASSIGNED'],
-      TECHNICIAN_ASSIGNED: ['IN_PROGRESS'],
+      PENDING: ['APPROVED', 'COMPLETED'],
+      APPROVED: ['TECHNICIAN_ASSIGNED', 'IN_PROGRESS', 'COMPLETED'],
+      TECHNICIAN_ASSIGNED: ['IN_PROGRESS', 'COMPLETED'],
       IN_PROGRESS: ['COMPLETED'],
     };
 

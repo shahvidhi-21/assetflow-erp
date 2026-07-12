@@ -1,133 +1,225 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { ShieldCheck, User, Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Mail, Lock, ArrowRight, User } from 'lucide-react';
+import Input from '../components/Input';
+import FloatingCard from '../components/FloatingCard';
+import dashboardHero from '../assets/dashboard_hero.png';
+import { Archive, LineChart, ArrowLeftRight } from 'lucide-react';
 
-const Signup = () => {
-  const { signup } = useAuth();
-  const navigate = useNavigate();
+import { useAuth } from '../context/AuthContext';
+
+export default function Signup() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+  const { signup } = useAuth();
 
-  const handleSubmit = async (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
-    setError('');
-    
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      return;
+    const newErrors = {};
+
+    if (!name) newErrors.name = 'Full name is required';
+    if (!email) {
+      newErrors.email = 'Email address is required';
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Please enter a valid email address';
     }
 
-    setLoading(true);
+    if (!password) {
+      newErrors.password = 'Password is required';
+    } else if (password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
 
-    const result = await signup(name, email, password);
+    if (password !== confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
 
-    if (result.success) {
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) return;
+
+    setIsLoading(true);
+    const res = await signup(name, email.trim().toLowerCase(), password);
+    setIsLoading(false);
+
+    if (res.success) {
+      alert('Signup Successful! Redirecting to Dashboard...');
       navigate('/');
     } else {
-      setError(result.message);
-      setLoading(false);
+      alert(res.message || 'Signup failed. Please try again.');
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-tr from-primary-950 via-gray-900 to-indigo-950 p-6">
-      <div className="w-full max-w-md rounded-3xl border border-white/10 bg-black/40 p-8 shadow-2xl backdrop-blur-xl">
-        
-        {/* Logo Header */}
-        <div className="flex flex-col items-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-500 text-white shadow-xl shadow-primary-500/20">
-            <ShieldCheck className="h-8 w-8" />
+    <div className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-12 bg-white selection:bg-blue-600 selection:text-white text-left">
+      {/* Left Side Panel */}
+      <div className="lg:col-span-5 flex flex-col justify-between p-8 sm:p-12 xl:p-16 min-h-screen">
+        {/* Top Header Logo */}
+        <div className="flex items-center gap-2 mb-12 lg:mb-0">
+          <div className="flex items-center gap-3">
+            <div className="relative w-10 h-10 flex items-center justify-center bg-blue-600 rounded-xl shadow-lg shadow-blue-600/30 overflow-hidden shrink-0">
+              <div className="absolute inset-0 bg-gradient-to-tr from-blue-700 to-indigo-500" />
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="relative z-10">
+                <path d="M12 2L2 22H7L12 12L17 22H22L12 2Z" fill="white" stroke="white" strokeWidth="1" strokeLinejoin="round" />
+                <path d="M12 12L9 18H15L12 12Z" fill="#10b981" />
+              </svg>
+            </div>
+            <div className="flex flex-col">
+              <h1 className="text-2xl font-extrabold text-blue-600 leading-none tracking-tight">AssetFlow</h1>
+              <p className="text-[8px] font-bold text-emerald-500 tracking-widest mt-1 uppercase">Enterprise Asset & Resource Management System</p>
+            </div>
           </div>
-          <h1 className="mt-4 font-display text-2xl font-extrabold text-white tracking-tight">
-            Create Account
-          </h1>
-          <p className="mt-1 text-sm text-gray-400">Join AssetFlow Resource Portal</p>
         </div>
 
-        {error && (
-          <div className="mt-6 flex items-start gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400">
-            <AlertCircle className="h-5 w-5 shrink-0" />
-            <p>{error}</p>
-          </div>
-        )}
-
-        {/* Register Form */}
-        <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-          <div>
-            <label className="text-xs font-semibold text-gray-300 uppercase tracking-wider block mb-2">Full Name</label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500">
-                <User className="h-5 w-5" />
-              </span>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="John Doe"
-                className="w-full rounded-2xl border border-white/10 bg-white/5 py-3.5 pl-12 pr-4 text-sm text-white placeholder-gray-500 outline-none transition-all duration-200 focus:border-primary-500 focus:bg-white/10 focus:ring-1 focus:ring-primary-500"
-              />
-            </div>
+        {/* Center Signup Form */}
+        <div className="my-auto max-w-md w-full mx-auto flex flex-col gap-6">
+          <div className="flex flex-col gap-2">
+            <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight leading-tight">Create Account</h2>
+            <p className="text-sm font-medium text-gray-500">Sign up as an Employee. Complete profile details for Admin audit review.</p>
           </div>
 
-          <div>
-            <label className="text-xs font-semibold text-gray-300 uppercase tracking-wider block mb-2">Email Address</label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500">
-                <Mail className="h-5 w-5" />
-              </span>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@company.com"
-                className="w-full rounded-2xl border border-white/10 bg-white/5 py-3.5 pl-12 pr-4 text-sm text-white placeholder-gray-500 outline-none transition-all duration-200 focus:border-primary-500 focus:bg-white/10 focus:ring-1 focus:ring-primary-500"
-              />
-            </div>
+          <form onSubmit={handleSignup} className="flex flex-col gap-4">
+            <Input
+              label="Full Name"
+              id="name"
+              type="text"
+              icon={User}
+              placeholder="e.g. John Doe"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (errors.name) setErrors({ ...errors, name: '' });
+              }}
+              error={errors.name}
+              required
+            />
+
+            <Input
+              label="Email Address"
+              id="email"
+              type="email"
+              icon={Mail}
+              placeholder="john.doe@enterprise.com"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errors.email) setErrors({ ...errors, email: '' });
+              }}
+              error={errors.email}
+              required
+            />
+
+            <Input
+              label="Password"
+              id="password"
+              type="password"
+              icon={Lock}
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (errors.password) setErrors({ ...errors, password: '' });
+              }}
+              error={errors.password}
+              required
+            />
+
+            <Input
+              label="Confirm Password"
+              id="confirm-password"
+              type="password"
+              icon={Lock}
+              placeholder="••••••••"
+              value={confirmPassword}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: '' });
+              }}
+              error={errors.confirmPassword}
+              required
+            />
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full mt-2 py-4 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] disabled:opacity-75 disabled:pointer-events-none text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-blue-600/25 transition-all duration-200 group text-sm cursor-pointer"
+            >
+              {isLoading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <span>Sign Up</span>
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
+            </button>
+          </form>
+        </div>
+
+        {/* Bottom Footer */}
+        <div className="flex flex-col gap-3 text-sm mt-12 lg:mt-0">
+          <p className="text-gray-500 font-semibold">
+            Already have an account?{' '}
+            <button onClick={() => navigate('/login')} className="text-blue-600 hover:text-blue-700 transition-colors font-bold">
+              Sign In
+            </button>
+          </p>
+          <p className="text-xs text-gray-400 font-medium">© 2026 AssetFlow ERP</p>
+        </div>
+      </div>
+
+      {/* Right Side Panel */}
+      <div className="lg:col-span-7 hidden lg:flex flex-col justify-between p-12 xl:p-16 hero-radial-bg relative overflow-hidden text-left">
+        <div className="absolute inset-0 opacity-15 pointer-events-none" style={{
+          backgroundImage: `radial-gradient(#1e52db 1.5px, transparent 1.5px)`,
+          backgroundSize: '24px 24px'
+        }} />
+        <div className="h-4" />
+
+        <div className="relative max-w-[600px] w-full mx-auto my-auto flex items-center justify-center">
+          <div className="absolute top-0 text-[36px] font-black text-blue-900/5 select-none pointer-events-none tracking-widest uppercase">
+            ERP Software Solutions
           </div>
 
-          <div>
-            <label className="text-xs font-semibold text-gray-300 uppercase tracking-wider block mb-2">Password</label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500">
-                <Lock className="h-5 w-5" />
-              </span>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="•••••••• (Min. 6 chars)"
-                className="w-full rounded-2xl border border-white/10 bg-white/5 py-3.5 pl-12 pr-4 text-sm text-white placeholder-gray-500 outline-none transition-all duration-200 focus:border-primary-500 focus:bg-white/10 focus:ring-1 focus:ring-primary-500"
-              />
-            </div>
+          <div className="w-full relative z-10 p-6 bg-white/40 backdrop-blur-md rounded-[32px] border border-white/50 shadow-2xl">
+            <img src={dashboardHero} alt="Showcase" className="w-full h-auto object-cover rounded-2xl shadow-lg border border-gray-100" />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary-600 to-indigo-600 py-4 text-sm font-semibold text-white shadow-xl shadow-primary-500/20 hover:from-primary-500 hover:to-indigo-500 transition-all duration-200 disabled:opacity-50 transform active:scale-98 cursor-pointer"
-          >
-            {loading ? 'Registering...' : 'Register'}
-            {!loading && <ArrowRight className="h-4 w-4" />}
-          </button>
-        </form>
+          <FloatingCard
+            icon={Archive} iconColor="text-blue-600" iconBg="bg-blue-50"
+            title="Track Assets" description="Monitor every asset across departments."
+            className="absolute -top-6 -left-6 z-20" animationClass="animate-float-1"
+          />
 
-        {/* Login Link */}
-        <p className="mt-6 text-center text-sm text-gray-400">
-          Already registered?{' '}
-          <Link to="/login" className="font-semibold text-primary-400 hover:text-primary-300 transition-colors">
-            Log In Here
-          </Link>
-        </p>
+          <FloatingCard
+            icon={LineChart} iconColor="text-indigo-600" iconBg="bg-indigo-50"
+            title="Analytics" description="Real-time operational insights."
+            className="absolute top-[35%] -right-8 z-20" animationClass="animate-float-2"
+          />
+
+          <FloatingCard
+            icon={ArrowLeftRight} iconColor="text-emerald-600" iconBg="bg-emerald-50"
+            title="Smart Allocation" description="Allocate resources without conflicts."
+            className="absolute -bottom-6 left-[15%] z-20" animationClass="animate-float-3"
+          />
+        </div>
+
+        <div className="flex items-center gap-12 relative z-10 pl-6">
+          <div className="flex flex-col">
+            <span className="text-3xl font-extrabold text-blue-600 tracking-tight">12k+</span>
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-1">Assets Tracked</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-3xl font-extrabold text-emerald-500 tracking-tight">99.9%</span>
+            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-1">Uptime SLA</span>
+          </div>
+        </div>
       </div>
     </div>
   );
-};
-
-export default Signup;
+}

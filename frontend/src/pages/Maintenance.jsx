@@ -1,339 +1,183 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
-import { Wrench, Plus, X, User, ShieldAlert, CheckCircle, Play, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { useAppState } from '../context/StateContext';
+import { Plus, Check, ArrowRight, User, AlertTriangle, X, Play } from 'lucide-react';
 
-const Maintenance = () => {
-  const { user, isAssetManager } = useAuth();
-  const [requests, setRequests] = useState([]);
-  const [assets, setAssets] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // Form states
-  const [showCreateModal, setShowCreateModal] = useState(false);
+export default function Maintenance() {
+  const { assets, maintenanceRequests, raiseMaintenance, updateMaintenanceStatus, currentUser } = useAppState();
+  const [showModal, setShowModal] = useState(false);
   const [selectedAssetId, setSelectedAssetId] = useState('');
-  const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState('MEDIUM');
-  const [formError, setFormError] = useState('');
+  const [issue, setIssue] = useState('');
 
-  // Technician assignment state
-  const [assigningRequestId, setAssigningRequestId] = useState(null);
-  const [technicianName, setTechnicianName] = useState('');
-
-  const fetchRequests = async () => {
-    try {
-      const response = await api.get('/maintenance');
-      setRequests(response.data.data);
-    } catch (err) {
-      console.error('Failed to fetch requests:', err);
-    }
-  };
-
-  const fetchAssets = async () => {
-    try {
-      const response = await api.get('/assets');
-      setAssets(response.data.data);
-    } catch (err) {
-      console.error('Failed to fetch assets:', err);
-    }
-  };
-
-  useEffect(() => {
-    const init = async () => {
-      setLoading(true);
-      await Promise.all([fetchRequests(), fetchAssets()]);
-      setLoading(false);
-    };
-    init();
-  }, []);
-
-  const handleCreate = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setFormError('');
+    if (!selectedAssetId || !issue) return;
 
-    try {
-      await api.post('/maintenance', {
-        assetId: selectedAssetId,
-        description,
-        priority,
-      });
-      setShowCreateModal(false);
-      setSelectedAssetId('');
-      setDescription('');
-      setPriority('MEDIUM');
-      fetchRequests();
-    } catch (err) {
-      setFormError(err.response?.data?.message || 'Failed to submit maintenance request');
-    }
+    raiseMaintenance(parseInt(selectedAssetId), issue);
+    
+    setSelectedAssetId('');
+    setIssue('');
+    setShowModal(false);
   };
 
-  const handleUpdateStatus = async (id, status, techName = null) => {
-    try {
-      await api.put(`/maintenance/${id}/status`, {
-        status,
-        technicianName: techName || undefined,
-      });
-      setAssigningRequestId(null);
-      setTechnicianName('');
-      fetchRequests();
-    } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update workflow status');
-    }
+  // Group requests by status
+  const getRequestsByStatus = (status) => {
+    return maintenanceRequests.filter((r) => r.status === status);
   };
 
-  const getPriorityColor = (pri) => {
-    switch (pri) {
-      case 'HIGH':
-        return 'text-red-600 bg-red-50 dark:bg-red-950/20 dark:text-red-400';
-      case 'MEDIUM':
-        return 'text-amber-600 bg-amber-50 dark:bg-amber-950/20 dark:text-amber-400';
-      default:
-        return 'text-blue-600 bg-blue-50 dark:bg-blue-950/20 dark:text-blue-400';
-    }
-  };
+  const columns = [
+    { title: 'Pending Approval', status: 'Pending', color: 'border-t-red-500 bg-red-500/5' },
+    { title: 'Approved', status: 'Approved', color: 'border-t-blue-500 bg-blue-500/5' },
+    { title: 'In Progress', status: 'Technician Assigned', color: 'border-t-amber-500 bg-amber-500/5' },
+    { title: 'Completed', status: 'Completed', color: 'border-t-emerald-500 bg-emerald-500/5' },
+  ];
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'PENDING':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-400';
-      case 'APPROVED':
-        return 'bg-violet-100 text-violet-800 dark:bg-violet-950/40 dark:text-violet-400';
-      case 'TECHNICIAN_ASSIGNED':
-        return 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-400';
-      case 'IN_PROGRESS':
-        return 'bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-400';
-      case 'COMPLETED':
-        return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-850';
-    }
-  };
+  const canManage = currentUser.role === 'Admin' || currentUser.role === 'Asset Manager';
 
   return (
-    <div className="space-y-6 text-left">
-      {/* Header */}
+    <div className="flex flex-col gap-6 animate-in fade-in duration-200 text-left">
+      
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-            Maintenance Dashboard
-          </h1>
-          <p className="text-sm text-gray-500">
-            Submit break-fix tickets and track equipment repair pipelines.
-          </p>
+          <h1 className="text-2xl font-black tracking-tight">Maintenance requests</h1>
+          <p className="text-sm font-medium text-gray-400">Track and manage physical asset repairs. Moving to approved automatically flags assets as 'Under Maintenance'.</p>
         </div>
         <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:from-primary-500 hover:to-indigo-500 cursor-pointer"
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-600/10 cursor-pointer self-start"
         >
-          <Plus className="h-5 w-5" />
-          <span>Raise Ticket</span>
+          <Plus size={16} />
+          <span>Raise Request</span>
         </button>
       </div>
 
-      {/* Tickets List */}
-      <div className="overflow-hidden rounded-3xl border border-gray-150 bg-white dark:border-gray-800 dark:bg-gray-950 shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/70 text-xs font-semibold text-gray-500 uppercase tracking-wider dark:border-gray-850 dark:bg-gray-900/60">
-                <th className="px-6 py-4">Asset Info</th>
-                <th className="px-6 py-4">Issue Description</th>
-                <th className="px-6 py-4">Priority</th>
-                <th className="px-6 py-4">Reported By</th>
-                <th className="px-6 py-4">Technician</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Workflow Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 text-sm dark:divide-gray-850">
-              {requests.length === 0 ? (
-                <tr>
-                  <td colSpan="7" className="text-center py-10 text-gray-400">
-                    No active maintenance tickets reported.
-                  </td>
-                </tr>
-              ) : (
-                requests.map((req) => (
-                  <tr key={req.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-900/25">
-                    <td className="px-6 py-4">
-                      <div className="font-semibold text-gray-900 dark:text-white">{req.asset.name}</div>
-                      <div className="text-xs font-mono text-gray-400">{req.asset.assetTag}</div>
-                    </td>
-                    <td className="px-6 py-4 font-medium text-gray-700 dark:text-gray-300 max-w-xs truncate">
-                      {req.description}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${getPriorityColor(req.priority)}`}>
-                        {req.priority}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="font-medium">{req.employee.name}</div>
-                      <div className="text-xs text-gray-400">{new Date(req.createdAt).toLocaleDateString()}</div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-500 font-medium">
-                      {req.technicianName || <span className="text-gray-300 dark:text-gray-650">—</span>}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${getStatusColor(req.status)}`}>
-                        {req.status.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      {isAssetManager && (
-                        <div className="flex justify-end gap-1.5">
-                          {req.status === 'PENDING' && (
+      {/* Kanban Board Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
+        {columns.map((col) => {
+          const list = getRequestsByStatus(col.status);
+          return (
+            <div
+              key={col.status}
+              className={`border-t-4 ${col.color} bg-white dark:bg-[#111827] border border-gray-150 dark:border-gray-800 rounded-3xl p-5 shadow-sm min-h-[400px] flex flex-col gap-4`}
+            >
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-extrabold text-gray-900 dark:text-white">{col.title}</h4>
+                <span className="text-[10px] font-black bg-gray-500/10 text-gray-500 px-2 py-0.5 rounded-full">{list.length}</span>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                {list.map((req) => (
+                  <div
+                    key={req.id}
+                    className="p-4 bg-white dark:bg-[#1f2937] border border-gray-100 dark:border-gray-800 rounded-2xl flex flex-col gap-3 shadow-inner hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex flex-col text-left">
+                      <span className="text-[10px] font-mono text-blue-600 dark:text-blue-400 font-bold">{req.assetTag}</span>
+                      <span className="text-xs font-black text-gray-900 dark:text-white leading-tight mt-0.5">{req.assetName}</span>
+                      <p className="text-[11px] text-gray-500 leading-normal mt-2 italic font-semibold">"{req.issue}"</p>
+                    </div>
+
+                    <div className="border-t border-gray-50 dark:border-gray-800 pt-2 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400">
+                        <User size={12} />
+                        <span className="truncate max-w-[80px]">{req.raisedBy}</span>
+                      </div>
+
+                      {/* Action buttons depending on status and role */}
+                      {canManage && (
+                        <div className="flex items-center gap-1">
+                          {req.status === 'Pending' && (
                             <button
-                              onClick={() => handleUpdateStatus(req.id, 'APPROVED')}
-                              className="rounded-lg border border-violet-200 px-2 py-1 text-xs font-bold text-violet-600 hover:bg-violet-50 dark:border-violet-900 dark:text-violet-400 dark:hover:bg-violet-950/20"
+                              onClick={() => updateMaintenanceStatus(req.id, 'Approved')}
+                              title="Approve Maintenance"
+                              className="p-1 bg-blue-500/15 hover:bg-blue-500/35 text-blue-600 dark:text-blue-400 rounded transition-colors cursor-pointer"
                             >
-                              Approve
+                              <Check size={12} strokeWidth={3} />
                             </button>
                           )}
-
-                          {req.status === 'APPROVED' && (
-                            <div className="flex gap-1">
-                              {assigningRequestId === req.id ? (
-                                <div className="flex gap-1 items-center">
-                                  <input
-                                    type="text"
-                                    placeholder="Tech Name"
-                                    value={technicianName}
-                                    onChange={(e) => setTechnicianName(e.target.value)}
-                                    className="rounded border border-gray-300 px-1.5 py-0.5 text-xs bg-white text-gray-900"
-                                  />
-                                  <button
-                                    onClick={() => handleUpdateStatus(req.id, 'TECHNICIAN_ASSIGNED', technicianName)}
-                                    disabled={!technicianName}
-                                    className="bg-emerald-600 text-white rounded px-2 py-0.5 text-xs"
-                                  >
-                                    Assign
-                                  </button>
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => setAssigningRequestId(req.id)}
-                                  className="rounded-lg border border-amber-200 px-2 py-1 text-xs font-bold text-amber-600 hover:bg-amber-50 dark:border-amber-900 dark:text-amber-400 dark:hover:bg-amber-950/20"
-                                >
-                                  Assign Tech
-                                </button>
-                              )}
-                            </div>
-                          )}
-
-                          {req.status === 'TECHNICIAN_ASSIGNED' && (
+                          {req.status === 'Approved' && (
                             <button
-                              onClick={() => handleUpdateStatus(req.id, 'IN_PROGRESS')}
-                              className="rounded-lg border border-sky-200 px-2 py-1 text-xs font-bold text-sky-600 hover:bg-sky-50 dark:border-sky-900 dark:text-sky-400 dark:hover:bg-sky-950/20"
+                              onClick={() => updateMaintenanceStatus(req.id, 'Technician Assigned')}
+                              title="Assign Tech & Start Work"
+                              className="p-1 bg-amber-500/15 hover:bg-amber-500/35 text-amber-600 dark:text-amber-400 rounded transition-colors cursor-pointer"
                             >
-                              Start
+                              <Play size={12} fill="currentColor" />
                             </button>
                           )}
-
-                          {req.status === 'IN_PROGRESS' && (
+                          {req.status === 'Technician Assigned' && (
                             <button
-                              onClick={() => handleUpdateStatus(req.id, 'COMPLETED')}
-                              className="rounded-lg border border-emerald-200 px-2 py-1 text-xs font-bold text-emerald-600 hover:bg-emerald-50 dark:border-emerald-900 dark:text-emerald-400 dark:hover:bg-emerald-950/20"
+                              onClick={() => updateMaintenanceStatus(req.id, 'Completed')}
+                              title="Mark Resolved"
+                              className="p-1 bg-emerald-500/15 hover:bg-emerald-500/35 text-emerald-600 dark:text-emerald-400 rounded transition-colors cursor-pointer"
                             >
-                              Complete
+                              <Check size={12} strokeWidth={3} />
                             </button>
                           )}
                         </div>
                       )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                  </div>
+                ))}
+                {list.length === 0 && (
+                  <div className="py-12 text-center text-[11px] text-gray-400 font-semibold border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-2xl">
+                    No requests logged
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Raise Ticket Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-3xl border border-gray-150 bg-white p-6 shadow-2xl dark:border-gray-850 dark:bg-gray-950">
-            <div className="flex items-center justify-between pb-4 border-b border-gray-150 dark:border-gray-850">
-              <div className="flex items-center gap-2">
-                <Wrench className="h-5 w-5 text-primary-500" />
-                <h3 className="font-display text-lg font-bold">Raise Maintenance Ticket</h3>
-              </div>
-              <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-700">
-                <X className="h-6 w-6" />
+      {/* Raise Request Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#111827] rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl border border-gray-150 dark:border-gray-800 flex flex-col gap-5 text-left animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
+              <h3 className="text-base font-extrabold text-gray-900 dark:text-white">Raise Maintenance Request</h3>
+              <button onClick={() => setShowModal(false)} className="p-1 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 cursor-pointer">
+                <X size={20} />
               </button>
             </div>
 
-            {formError && (
-              <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-600">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <p>{formError}</p>
-              </div>
-            )}
-
-            <form onSubmit={handleCreate} className="mt-4 space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Select Asset</label>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-400 uppercase">Select Target Asset</label>
                 <select
                   required
                   value={selectedAssetId}
                   onChange={(e) => setSelectedAssetId(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 p-2.5 text-sm dark:border-gray-800 dark:bg-gray-900"
+                  className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 text-sm text-gray-900 dark:text-white"
                 >
-                  <option value="">Select Asset...</option>
-                  {assets.map((asset) => (
-                    <option key={asset.id} value={asset.id}>
-                      {asset.name} ({asset.assetTag}) - {asset.status}
-                    </option>
+                  <option value="">-- Choose Asset --</option>
+                  {assets.filter(a => a.status !== 'Retired').map((asset) => (
+                    <option key={asset.id} value={asset.id}>{asset.name} ({asset.tag})</option>
                   ))}
                 </select>
               </div>
 
-              <div>
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Priority</label>
-                <select
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 p-2.5 text-sm dark:border-gray-800 dark:bg-gray-900"
-                >
-                  <option value="LOW">Low</option>
-                  <option value="MEDIUM">Medium</option>
-                  <option value="HIGH">High</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Problem Description</label>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-400 uppercase">Issue Description</label>
                 <textarea
                   required
-                  rows="4"
-                  placeholder="Explain the damage or break-fix issue in detail..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 p-2.5 text-sm dark:border-gray-800 dark:bg-gray-900"
+                  placeholder="Explain the defect or service request details..."
+                  value={issue}
+                  onChange={(e) => setIssue(e.target.value)}
+                  rows="3"
+                  className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 text-sm text-gray-900 dark:text-white resize-none"
                 />
               </div>
 
-              <div className="flex gap-3 justify-end pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold hover:bg-gray-50 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-primary-500 cursor-pointer"
-                >
-                  Submit Ticket
-                </button>
-              </div>
+              <button
+                type="submit"
+                className="w-full mt-2 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-600/25 transition-all text-sm cursor-pointer"
+              >
+                File Support Ticket
+              </button>
             </form>
           </div>
         </div>
       )}
+
     </div>
   );
-};
-
-export default Maintenance;
+}

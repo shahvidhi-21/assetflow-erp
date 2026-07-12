@@ -1,259 +1,187 @@
-import React, { useState, useEffect } from 'react';
-import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
-import {
-  FileText,
-  Download,
-  AlertTriangle,
-  TrendingDown,
-  Clock,
-  Gauge,
-  Sparkles,
-  ArrowRight,
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { useAppState } from '../context/StateContext';
+import { FileDown, Calendar, AlertTriangle, User, RefreshCw, BarChart2 } from 'lucide-react';
 
-const Reports = () => {
-  const { user } = useAuth();
-  const [insights, setInsights] = useState(null);
-  const [highRisk, setHighRisk] = useState([]);
-  const [retirement, setRetirement] = useState([]);
-  const [overdue, setOverdue] = useState([]);
-  const [congestion, setCongestion] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function Reports() {
+  const { assets, allocations, bookings, maintenanceRequests } = useAppState();
+  const [reportType, setReportType] = useState('allocations');
 
-  useEffect(() => {
-    const fetchInsights = async () => {
-      try {
-        const response = await api.get('/reports/insights');
-        setInsights(response.data.data.insights);
-        setHighRisk(response.data.data.highRiskAssets);
-        setRetirement(response.data.data.nearingRetirement);
-        setOverdue(response.data.data.overdueReturns);
-        setCongestion(response.data.data.bookingCongestion);
-      } catch (err) {
-        console.error('Failed to load reports insights:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchInsights();
-  }, []);
-
-  const handleCSVExport = () => {
-    // Open in a new tab to trigger browser download stream
-    window.open('/api/reports/export-csv');
+  // Generate Report Data
+  const getReportData = () => {
+    switch (reportType) {
+      case 'allocations':
+        return allocations.map((a) => ({
+          col1: a.assetTag,
+          col2: a.assetName,
+          col3: a.employeeName,
+          col4: a.allocatedDate,
+          col5: a.returnedDate || 'Active',
+          status: a.status,
+        }));
+      case 'maintenance':
+        return maintenanceRequests.map((m) => ({
+          col1: m.assetTag,
+          col2: m.assetName,
+          col3: m.raisedBy,
+          col4: m.dateRaised,
+          col5: m.issue,
+          status: m.status,
+        }));
+      case 'bookings':
+        return bookings.map((b) => ({
+          col1: b.resourceName,
+          col2: b.bookedBy,
+          col3: b.date,
+          col4: `${b.startTime} - ${b.endTime}`,
+          col5: 'N/A',
+          status: b.status,
+        }));
+      default:
+        return [];
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary-500 border-t-transparent"></div>
-      </div>
-    );
-  }
+  const reportHeaders = () => {
+    switch (reportType) {
+      case 'allocations':
+        return ['Asset Tag', 'Asset Name', 'Allocated To', 'Allocated Date', 'Return Date', 'Status'];
+      case 'maintenance':
+        return ['Asset Tag', 'Asset Name', 'Raised By', 'Date Raised', 'Issue Details', 'Status'];
+      case 'bookings':
+        return ['Resource Name', 'Booked By', 'Date', 'Time Slot', '', 'Status'];
+      default:
+        return [];
+    }
+  };
 
-  const financials = insights?.financials || { totalOriginalValue: 0, currentDepreciatedValue: 0 };
+  const reportTitle = () => {
+    switch (reportType) {
+      case 'allocations':
+        return 'Active & Historical Asset Allocations';
+      case 'maintenance':
+        return 'Asset Maintenance & Repair Frequency';
+      case 'bookings':
+        return 'Shared Resource Allocation Slots';
+      default:
+        return '';
+    }
+  };
+
+  const handleExportCSV = () => {
+    const headers = reportHeaders().filter(h => h !== '');
+    const rows = getReportData().map(row => [
+      row.col1,
+      row.col2,
+      row.col3,
+      row.col4,
+      row.col5 === 'N/A' ? '' : row.col5,
+      row.status
+    ]);
+
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += headers.join(",") + "\n";
+    rows.forEach(row => {
+      const sanitized = row.map(v => `"${String(v).replace(/"/g, '""')}"`);
+      csvContent += sanitized.join(",") + "\n";
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `AssetFlow_${reportType}_Report.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const reportData = getReportData();
+  const headers = reportHeaders();
 
   return (
-    <div className="space-y-8 text-left max-w-6xl mx-auto">
-      {/* Welcome & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-5 dark:border-gray-800">
+    <div className="flex flex-col gap-6 animate-in fade-in duration-200 text-left">
+      
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-            Asset Intelligence & Reports
-          </h1>
-          <p className="text-sm text-gray-500">
-            Export database tables and review AI preventive maintenance forecasts.
-          </p>
+          <h1 className="text-2xl font-black tracking-tight">Reports Panel</h1>
+          <p className="text-sm font-medium text-gray-400">Generate aggregated data metrics and download spreadsheets.</p>
         </div>
         <button
-          onClick={handleCSVExport}
-          className="flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-gray-850 dark:bg-gray-800 dark:hover:bg-gray-700 cursor-pointer"
+          onClick={handleExportCSV}
+          disabled={reportData.length === 0}
+          className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:pointer-events-none text-white text-sm font-bold rounded-xl shadow-lg shadow-emerald-600/10 cursor-pointer self-start"
         >
-          <Download className="h-4.5 w-4.5" />
-          <span>Export Assets CSV</span>
+          <FileDown size={16} />
+          <span>Export CSV</span>
         </button>
       </div>
 
-      {/* AI Header Card */}
-      <div className="rounded-3xl bg-gradient-to-r from-violet-800 via-indigo-800 to-indigo-950 p-6 text-white shadow-xl shadow-primary-500/10 flex items-center justify-between gap-6 overflow-hidden relative">
-        <div className="space-y-1.5 z-10">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary-200">
-            <Sparkles className="h-4 w-4 text-amber-300 animate-pulse" />
-            <span>AI Predictive Insight Engine</span>
-          </div>
-          <h2 className="font-display text-xl md:text-2xl font-extrabold">
-            Predictive Health & Depreciation Analysis
-          </h2>
-          <p className="text-indigo-200 text-xs md:text-sm max-w-2xl">
-            AssetFlow monitors asset condition cycles, maintenance logs, and operational age metrics to forecast replacement timelines and prevent hardware bottlenecks.
-          </p>
-        </div>
-        <div className="absolute right-0 top-0 opacity-10 transform translate-x-12 -translate-y-8 select-none pointer-events-none hidden lg:block">
-          <Sparkles className="h-64 w-64 text-white" />
-        </div>
+      {/* Selector Tabs */}
+      <div className="flex flex-wrap gap-2.5">
+        {[
+          { id: 'allocations', label: 'Allocation History', icon: RefreshCw },
+          { id: 'maintenance', label: 'Maintenance Freq', icon: AlertTriangle },
+          { id: 'bookings', label: 'Shared Booking Logs', icon: Calendar },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setReportType(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                reportType === tab.id
+                  ? 'bg-blue-600 border-blue-600 text-white shadow-md'
+                  : 'bg-white dark:bg-[#111827] border-gray-200 dark:border-gray-800 text-gray-500 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              <Icon size={14} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* KPI Financial Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Book Value depreciation card */}
-        <div className="p-6 rounded-3xl border border-gray-150 bg-white dark:border-gray-800 dark:bg-gray-950 shadow-sm space-y-4">
-          <div className="flex justify-between items-start">
-            <div className="space-y-1">
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Book Value (Depreciated)</span>
-              <h3 className="font-display text-3xl font-extrabold tracking-tight text-gray-950 dark:text-white">
-                ₹{financials.currentDepreciatedValue.toLocaleString('en-IN')}
-              </h3>
-            </div>
-            <div className="p-2.5 rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-400">
-              <TrendingDown className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="text-xs text-gray-500">
-            Computed using Straight Line depreciation (20% per year). Original purchase price: <span className="font-bold">₹{financials.totalOriginalValue.toLocaleString('en-IN')}</span>
-          </div>
+      {/* Report Table Display */}
+      <div className="bg-white dark:bg-[#111827] border border-gray-150 dark:border-gray-800 rounded-3xl overflow-hidden shadow-sm flex flex-col gap-4 p-6">
+        <div>
+          <h3 className="text-base font-extrabold tracking-tight">{reportTitle()}</h3>
+          <p className="text-xs font-semibold text-gray-400">Report details generated on {new Date().toISOString().split('T')[0]}</p>
         </div>
 
-        {/* High Risk failure cards count */}
-        <div className="p-6 rounded-3xl border border-gray-150 bg-white dark:border-gray-800 dark:bg-gray-950 shadow-sm space-y-4">
-          <div className="flex justify-between items-start">
-            <div className="space-y-1">
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">High Breakdown Risk</span>
-              <h3 className="font-display text-3xl font-extrabold tracking-tight text-red-600 dark:text-red-400">
-                {insights?.highRiskCount || 0}
-              </h3>
-            </div>
-            <div className="p-2.5 rounded-xl bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400">
-              <AlertTriangle className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="text-xs text-gray-500">
-            Assets showing POOR conditions combined with operational ages over 2.0 years.
-          </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[700px]">
+            <thead>
+              <tr className="bg-gray-50 dark:bg-gray-900/40 border-b border-gray-100 dark:border-gray-800 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                {headers.map((h, i) => h !== '' && (
+                  <th key={i} className="px-6 py-4">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800 text-xs font-semibold text-gray-700 dark:text-gray-300">
+              {reportData.map((row, index) => (
+                <tr key={index} className="hover:bg-gray-500/5 transition-colors">
+                  <td className="px-6 py-4 font-mono font-bold text-gray-900 dark:text-white">{row.col1}</td>
+                  <td className="px-6 py-4">{row.col2}</td>
+                  <td className="px-6 py-4 text-gray-500">{row.col3}</td>
+                  <td className="px-6 py-4 text-gray-450 font-mono">{row.col4}</td>
+                  {headers[4] !== '' && (
+                    <td className="px-6 py-4 text-gray-450 truncate max-w-[200px]">{row.col5}</td>
+                  )}
+                  <td className="px-6 py-4">
+                    <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                      {row.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-
-        {/* Overdue returns card */}
-        <div className="p-6 rounded-3xl border border-gray-150 bg-white dark:border-gray-800 dark:bg-gray-950 shadow-sm space-y-4">
-          <div className="flex justify-between items-start">
-            <div className="space-y-1">
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Overdue Returns (&gt;30d)</span>
-              <h3 className="font-display text-3xl font-extrabold tracking-tight text-amber-600 dark:text-amber-400">
-                {insights?.overdueCount || 0}
-              </h3>
-            </div>
-            <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
-              <Clock className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="text-xs text-gray-500">
-            Individual assets that have been allocated for longer than 30 consecutive days.
-          </div>
-        </div>
+        
+        {reportData.length === 0 && (
+          <div className="py-12 text-center text-xs text-gray-400 font-medium">No report records found for this category.</div>
+        )}
       </div>
 
-      {/* Tables section: Risk Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Risk profile List */}
-        <div className="rounded-3xl border border-gray-150 bg-white p-6 dark:border-gray-800 dark:bg-gray-950 shadow-sm space-y-4">
-          <h3 className="font-display text-lg font-bold">Preventive Maintenance Warnings</h3>
-          <div className="divide-y divide-gray-100 dark:divide-gray-850">
-            {highRisk.length === 0 ? (
-              <p className="text-center py-6 text-xs text-gray-400">No high breakdown risk assets detected</p>
-            ) : (
-              highRisk.map((item) => (
-                <div key={item.id} className="py-3 flex justify-between items-center gap-4">
-                  <div>
-                    <h5 className="font-semibold text-sm">{item.name}</h5>
-                    <p className="text-xs text-gray-400 font-mono">{item.tag}</p>
-                    <p className="text-xs text-red-500 mt-0.5">{item.reason}</p>
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-400">
-                    {item.risk} RISK
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Nearing retirement list */}
-        <div className="rounded-3xl border border-gray-150 bg-white p-6 dark:border-gray-800 dark:bg-gray-950 shadow-sm space-y-4">
-          <h3 className="font-display text-lg font-bold">Recommended Asset Replacements</h3>
-          <div className="divide-y divide-gray-100 dark:divide-gray-850">
-            {retirement.length === 0 ? (
-              <p className="text-center py-6 text-xs text-gray-400">No assets pending replacement</p>
-            ) : (
-              retirement.map((item) => (
-                <div key={item.id} className="py-3 flex justify-between items-center gap-4">
-                  <div>
-                    <h5 className="font-semibold text-sm">{item.name}</h5>
-                    <p className="text-xs text-gray-400 font-mono">{item.tag}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">Asset Age: {item.ageYears} years</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-xs font-bold">₹{item.cost.toLocaleString('en-IN')}</span>
-                    <p className="text-[10px] font-semibold text-gray-400">Orig. Cost</p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Overdue and Congestions row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Overdue details table */}
-        <div className="rounded-3xl border border-gray-150 bg-white p-6 dark:border-gray-800 dark:bg-gray-950 shadow-sm space-y-4">
-          <h3 className="font-display text-lg font-bold">Overdue Return Audit Details</h3>
-          <div className="divide-y divide-gray-100 dark:divide-gray-850">
-            {overdue.length === 0 ? (
-              <p className="text-center py-6 text-xs text-gray-400">No overdue assets detected</p>
-            ) : (
-              overdue.map((item) => (
-                <div key={item.id} className="py-3 flex justify-between items-center gap-4">
-                  <div>
-                    <h5 className="font-semibold text-sm">{item.name}</h5>
-                    <p className="text-xs text-gray-400 font-mono">{item.tag}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">Holder: {item.employee}</p>
-                  </div>
-                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
-                    {item.daysElapsed} days out
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Bottlenecks list */}
-        <div className="rounded-3xl border border-gray-150 bg-white p-6 dark:border-gray-800 dark:bg-gray-950 shadow-sm space-y-4">
-          <h3 className="font-display text-lg font-bold flex items-center gap-2">
-            <Gauge className="h-5 w-5 text-indigo-500" />
-            <span>Shared Resource Utilization Bottlenecks</span>
-          </h3>
-          <div className="divide-y divide-gray-100 dark:divide-gray-850">
-            {congestion.length === 0 ? (
-              <p className="text-center py-6 text-xs text-gray-400">No booking bottlenecks logged</p>
-            ) : (
-              congestion.map((item, idx) => (
-                <div key={idx} className="py-3 flex justify-between items-center gap-4">
-                  <div>
-                    <h5 className="font-semibold text-sm">{item.name}</h5>
-                    <p className="text-xs text-gray-400 font-mono">{item.tag}</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400">{item.bookingsCount} Bookings</span>
-                    <p className="text-[10px] text-gray-400">High Congestion</p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
     </div>
   );
-};
-
-export default Reports;
+}
