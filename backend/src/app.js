@@ -11,6 +11,7 @@ const allocationRoutes = require('./modules/allocation/allocation.routes');
 const bookingsRoutes = require('./modules/bookings/bookings.routes');
 const maintenanceRoutes = require('./modules/maintenance/maintenance.routes');
 const reportsRoutes = require('./modules/reports/reports.routes');
+const auditRoutes = require('./modules/audit/audit.routes');
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use('/api/allocations', allocationRoutes);
 app.use('/api/bookings', bookingsRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/audit', auditRoutes);
 
 // Error handling middleware
 app.use(notFoundMiddleware);
