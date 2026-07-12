@@ -90,17 +90,19 @@ async function signup(req, res, next) {
 
 async function login(req, res, next) {
   try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return sendError(res, 'Email and password are required', 400);
+    // Accept either 'email' or 'username' field from the request
+    const rawEmail = req.body.email || req.body.username;
+    const password = req.body.password;
+    if (!rawEmail || !password) {
+      return sendError(res, 'Email (or username) and password are required', 400);
     }
+    const sanitizedEmail = rawEmail.trim().toLowerCase();
 
     // Double check admin seed in case DB was reset
     await checkAndCreateAdmin();
 
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: sanitizedEmail },
       include: { department: true }
     });
 
