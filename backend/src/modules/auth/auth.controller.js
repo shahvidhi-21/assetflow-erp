@@ -43,12 +43,20 @@ async function signup(req, res, next) {
       return sendError(res, 'Name, email, and password are required', 400);
     }
 
+    const sanitizedEmail = email.toLowerCase().trim();
+
+    // Secure email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(sanitizedEmail)) {
+      return sendError(res, 'Invalid email format', 400);
+    }
+
     if (password.length < 6) {
       return sendError(res, 'Password must be at least 6 characters long', 400);
     }
 
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: sanitizedEmail },
     });
 
     if (existingUser) {
@@ -63,8 +71,8 @@ async function signup(req, res, next) {
 
     const user = await prisma.user.create({
       data: {
-        name,
-        email,
+        name: name.trim(),
+        email: sanitizedEmail,
         password: hashedPassword,
         role,
         status: 'ACTIVE',
@@ -96,11 +104,13 @@ async function login(req, res, next) {
       return sendError(res, 'Email and password are required', 400);
     }
 
+    const sanitizedEmail = email.toLowerCase().trim();
+
     // Double check admin seed in case DB was reset
     await checkAndCreateAdmin();
 
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: sanitizedEmail },
       include: { department: true }
     });
 
