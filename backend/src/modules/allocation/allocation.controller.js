@@ -5,7 +5,12 @@ async function getAllAllocations(req, res, next) {
   try {
     const filter = {};
     if (req.user.role === 'DEPARTMENT_HEAD') {
-      filter.employee = { departmentId: req.user.departmentId };
+      const deptId = req.user.departmentId;
+      if (!deptId) {
+        filter.id = 0;
+      } else {
+        filter.employee = { departmentId: deptId };
+      }
     }
 
     const allocations = await prisma.assetAllocation.findMany({

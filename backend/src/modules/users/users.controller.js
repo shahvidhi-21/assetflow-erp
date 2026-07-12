@@ -11,7 +11,11 @@ async function getAllUsers(req, res, next) {
     if (status) filter.status = status;
 
     if (req.user.role === 'DEPARTMENT_HEAD') {
-      filter.departmentId = req.user.departmentId;
+      if (!req.user.departmentId) {
+        filter.id = req.user.id;
+      } else {
+        filter.departmentId = req.user.departmentId;
+      }
     }
 
     const users = await prisma.user.findMany({

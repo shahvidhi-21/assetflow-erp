@@ -29,24 +29,32 @@ async function getAllAssets(req, res, next) {
 
     if (req.user.role === 'DEPARTMENT_HEAD') {
       const deptId = req.user.departmentId;
-      filter.AND = [
-        {
-          OR: [
-            { isShared: true },
-            { allocations: { some: { employee: { departmentId: deptId }, status: 'ACTIVE' } } }
-          ]
-        }
-      ];
+      if (!deptId) {
+        // Unassigned department head can only view shared assets
+        filter.isShared = true;
+      } else {
+        filter.AND = [
+          {
+            OR: [
+              { isShared: true },
+              { allocations: { some: { employee: { departmentId: deptId }, status: 'ACTIVE' } } }
+            ]
+          }
+        ];
+      }
       
       if (search) {
-        filter.AND.push({
-          OR: [
-            { assetTag: { contains: search } },
-            { name: { contains: search } },
-            { serialNumber: { contains: search } },
-            { location: { contains: search } },
-          ]
-        });
+        const searchOR = [
+          { assetTag: { contains: search } },
+          { name: { contains: search } },
+          { serialNumber: { contains: search } },
+          { location: { contains: search } },
+        ];
+        if (filter.AND) {
+          filter.AND.push({ OR: searchOR });
+        } else {
+          filter.AND = [{ OR: searchOR }];
+        }
       }
     } else {
       if (search) {

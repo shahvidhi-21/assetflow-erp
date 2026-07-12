@@ -8,21 +8,32 @@ async function getDashboardKPIs(req, res, next) {
 
     if (req.user.role === 'DEPARTMENT_HEAD') {
       const deptId = req.user.departmentId;
-      totalAssets = await prisma.asset.count({
-        where: {
-          OR: [
-            { isShared: true },
-            { allocations: { some: { employee: { departmentId: deptId }, status: 'ACTIVE' } } }
-          ]
-        }
-      });
-      availableAssets = await prisma.asset.count({ where: { status: 'AVAILABLE', isShared: true } });
-      allocatedAssets = await prisma.assetAllocation.count({ where: { employee: { departmentId: deptId }, status: 'ACTIVE' } });
-      maintenanceAssets = await prisma.maintenanceRequest.count({ where: { employee: { departmentId: deptId }, status: { in: ['PENDING', 'APPROVED', 'TECHNICIAN_ASSIGNED', 'IN_PROGRESS'] } } });
-      activeBookings = await prisma.booking.count({ where: { employee: { departmentId: deptId }, status: 'ONGOING' } });
-      upcomingBookings = await prisma.booking.count({ where: { employee: { departmentId: deptId }, status: 'UPCOMING' } });
-      pendingTransfers = await prisma.assetAllocation.count({ where: { employee: { departmentId: deptId }, status: 'PENDING_TRANSFER' } });
-      activitiesFilter.user = { departmentId: deptId };
+      if (!deptId) {
+        totalAssets = await prisma.asset.count({ where: { isShared: true } });
+        availableAssets = await prisma.asset.count({ where: { status: 'AVAILABLE', isShared: true } });
+        allocatedAssets = 0;
+        maintenanceAssets = 0;
+        activeBookings = 0;
+        upcomingBookings = 0;
+        pendingTransfers = 0;
+        activitiesFilter.userId = req.user.id;
+      } else {
+        totalAssets = await prisma.asset.count({
+          where: {
+            OR: [
+              { isShared: true },
+              { allocations: { some: { employee: { departmentId: deptId }, status: 'ACTIVE' } } }
+            ]
+          }
+        });
+        availableAssets = await prisma.asset.count({ where: { status: 'AVAILABLE', isShared: true } });
+        allocatedAssets = await prisma.assetAllocation.count({ where: { employee: { departmentId: deptId }, status: 'ACTIVE' } });
+        maintenanceAssets = await prisma.maintenanceRequest.count({ where: { employee: { departmentId: deptId }, status: { in: ['PENDING', 'APPROVED', 'TECHNICIAN_ASSIGNED', 'IN_PROGRESS'] } } });
+        activeBookings = await prisma.booking.count({ where: { employee: { departmentId: deptId }, status: 'ONGOING' } });
+        upcomingBookings = await prisma.booking.count({ where: { employee: { departmentId: deptId }, status: 'UPCOMING' } });
+        pendingTransfers = await prisma.assetAllocation.count({ where: { employee: { departmentId: deptId }, status: 'PENDING_TRANSFER' } });
+        activitiesFilter.user = { departmentId: deptId };
+      }
     } else {
       totalAssets = await prisma.asset.count();
       availableAssets = await prisma.asset.count({ where: { status: 'AVAILABLE' } });
