@@ -1,127 +1,79 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useAppState } from './context/StateContext';
+import { Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './routes/ProtectedRoute';
+import AppLayout from './layouts/AppLayout';
 
-// Layout & Pages
-import DashboardLayout from './layouts/DashboardLayout';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import Assets from './pages/Assets';
-import Allocation from './pages/Allocation';
-import Booking from './pages/Booking';
+import Bookings from './pages/Bookings';
 import Maintenance from './pages/Maintenance';
+import QRScanner from './pages/QRScanner';
 import Departments from './pages/Departments';
 import Categories from './pages/Categories';
 import Employees from './pages/Employees';
 import Reports from './pages/Reports';
-import Profile from './pages/Profile';
-
-import ProtectedRoute from './routes/ProtectedRoute';
-
-// Auth Guard Wrapper
-function ProtectedRouteWithLayout({ children, allowedRoles }) {
-  return (
-    <ProtectedRoute allowedRoles={allowedRoles}>
-      <DashboardLayout>{children}</DashboardLayout>
-    </ProtectedRoute>
-  );
-}
 
 function App() {
   return (
-    <BrowserRouter>
+    <AuthProvider>
       <Routes>
-        {/* Public Routes */}
+        {/* Public auth routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
-        {/* Protected Dashboard Workspace Routes */}
+        {/* Protected ERP routes */}
         <Route
           path="/"
           element={
-            <ProtectedRouteWithLayout>
-              <Dashboard />
-            </ProtectedRouteWithLayout>
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
           }
-        />
-        <Route
-          path="/assets"
-          element={
-            <ProtectedRouteWithLayout>
-              <Assets />
-            </ProtectedRouteWithLayout>
-          }
-        />
-        <Route
-          path="/allocation"
-          element={
-            <ProtectedRouteWithLayout allowedRoles={['Admin', 'Asset Manager']}>
-              <Allocation />
-            </ProtectedRouteWithLayout>
-          }
-        />
-        <Route
-          path="/booking"
-          element={
-            <ProtectedRouteWithLayout>
-              <Booking />
-            </ProtectedRouteWithLayout>
-          }
-        />
-        <Route
-          path="/maintenance"
-          element={
-            <ProtectedRouteWithLayout>
-              <Maintenance />
-            </ProtectedRouteWithLayout>
-          }
-        />
-        <Route
-          path="/departments"
-          element={
-            <ProtectedRouteWithLayout allowedRoles={['Admin']}>
-              <Departments />
-            </ProtectedRouteWithLayout>
-          }
-        />
-        <Route
-          path="/categories"
-          element={
-            <ProtectedRouteWithLayout allowedRoles={['Admin']}>
-              <Categories />
-            </ProtectedRouteWithLayout>
-          }
-        />
-        <Route
-          path="/employees"
-          element={
-            <ProtectedRouteWithLayout allowedRoles={['Admin']}>
-              <Employees />
-            </ProtectedRouteWithLayout>
-          }
-        />
-        <Route
-          path="/reports"
-          element={
-            <ProtectedRouteWithLayout allowedRoles={['Admin', 'Asset Manager']}>
-              <Reports />
-            </ProtectedRouteWithLayout>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRouteWithLayout>
-              <Profile />
-            </ProtectedRouteWithLayout>
-          }
-        />
-
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        >
+          <Route index element={<Dashboard />} />
+          <Route path="assets" element={<Assets />} />
+          <Route path="bookings" element={<Bookings />} />
+          <Route path="maintenance" element={<Maintenance />} />
+          <Route path="scan" element={<QRScanner />} />
+          
+          <Route
+            path="departments"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <Departments />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="categories"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'ASSET_MANAGER']}>
+                <Categories />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="employees"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'DEPARTMENT_HEAD']}>
+                <Employees />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="reports"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'ASSET_MANAGER', 'DEPARTMENT_HEAD']}>
+                <Reports />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
       </Routes>
-    </BrowserRouter>
+    </AuthProvider>
   );
 }
 

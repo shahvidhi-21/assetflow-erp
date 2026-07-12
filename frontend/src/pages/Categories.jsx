@@ -1,152 +1,221 @@
-import React, { useState } from 'react';
-import { useAppState } from '../context/StateContext';
-import { Plus, Edit2, Trash2, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import api from '../services/api';
+import { Tags, Plus, X, Pencil, Trash2 } from 'lucide-react';
 
-export default function Categories() {
-  const { categories, addCategory, updateCategory, deleteCategory } = useAppState();
+const Categories = () => {
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Modal & Form states
   const [showModal, setShowModal] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState({ name: '', description: '' });
+  const [editingId, setEditingId] = useState(null);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!form.name || !form.description) return;
-
-    if (isEditing) {
-      updateCategory(editId, form);
-    } else {
-      addCategory(form);
+  const fetchCategories = async () => {
+    try {
+      const response = await api.get('/categories');
+      setCategories(response.data.data);
+    } catch (err) {
+      console.error('Failed to load categories:', err);
     }
+  };
 
-    closeModal();
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true);
+      await fetchCategories();
+      setLoading(false);
+    };
+    init();
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    try {
+      if (editingId) {
+        await api.put(`/categories/${editingId}`, { name, description });
+      } else {
+        await api.post('/categories', { name, description });
+      }
+      setShowModal(false);
+      setName('');
+      setDescription('');
+      setEditingId(null);
+      fetchCategories();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Operation failed');
+    }
   };
 
   const handleEdit = (cat) => {
-    setForm({ name: cat.name, description: cat.description });
-    setEditId(cat.id);
-    setIsEditing(true);
+    setEditingId(cat.id);
+    setName(cat.name);
+    setDescription(cat.description || '');
     setShowModal(true);
   };
 
-  const closeModal = () => {
-    setForm({ name: '', description: '' });
-    setIsEditing(false);
-    setEditId(null);
-    setShowModal(false);
+  const handleDelete = async (id) => {
+    if (!confirm('Are you sure you want to delete this category?')) return;
+    try {
+      await api.delete(`/categories/${id}`);
+      fetchCategories();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Delete failed');
+    }
   };
 
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary-500 border-t-transparent"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-200">
-      
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left">
+    <div className="space-y-6 text-left">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black tracking-tight">Asset Categories</h1>
-          <p className="text-sm font-medium text-gray-400">Classify physical assets and shared resources (e.g. Laptops, Vehicles, Office Setup).</p>
+          <h1 className="font-display text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+            Asset Categories
+          </h1>
+          <p className="text-sm text-gray-500">Manage categories for laptop assets, furniture, vehicles, and electronics.</p>
         </div>
         <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-600/10 cursor-pointer self-start"
+          onClick={() => {
+            setEditingId(null);
+            setName('');
+            setDescription('');
+            setError('');
+            setShowModal(true);
+          }}
+          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:from-primary-500 hover:to-indigo-500 cursor-pointer"
         >
-          <Plus size={16} />
+          <Plus className="h-5 w-5" />
           <span>Add Category</span>
         </button>
       </div>
 
-      {/* Categories Table */}
-      <div className="bg-white dark:bg-[#111827] border border-gray-150 dark:border-gray-800 rounded-3xl overflow-hidden shadow-sm">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-gray-50 dark:bg-gray-900/40 border-b border-gray-100 dark:border-gray-800 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-              <th className="px-6 py-4">ID</th>
-              <th className="px-6 py-4">Category Name</th>
-              <th className="px-6 py-4">Description</th>
-              <th className="px-6 py-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-gray-800 text-xs font-semibold text-gray-700 dark:text-gray-300">
-            {categories.map((cat) => (
-              <tr key={cat.id} className="hover:bg-gray-500/5 transition-colors">
-                <td className="px-6 py-4 font-mono text-gray-400">#{cat.id}</td>
-                <td className="px-6 py-4 font-bold text-gray-900 dark:text-white">{cat.name}</td>
-                <td className="px-6 py-4 text-gray-500 max-w-md truncate">{cat.description}</td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex items-center justify-end gap-3">
-                    <button
-                      onClick={() => handleEdit(cat)}
-                      className="p-1.5 hover:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg transition-colors cursor-pointer"
-                    >
-                      <Edit2 size={14} />
-                    </button>
-                    <button
-                      onClick={() => deleteCategory(cat.id)}
-                      className="p-1.5 hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-lg transition-colors cursor-pointer"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </td>
+      <div className="overflow-hidden rounded-3xl border border-gray-150 bg-white dark:border-gray-800 dark:bg-gray-950 shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-left">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50/70 text-xs font-semibold text-gray-500 uppercase tracking-wider dark:border-gray-850 dark:bg-gray-900/60">
+                <th className="px-6 py-4">Category Name</th>
+                <th className="px-6 py-4">Description</th>
+                <th className="px-6 py-4">Total Assets In Stock</th>
+                <th className="px-6 py-4 text-right">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {categories.length === 0 && (
-          <div className="p-8 text-center text-gray-400 text-sm font-medium">No categories found.</div>
-        )}
+            </thead>
+            <tbody className="divide-y divide-gray-100 text-sm dark:divide-gray-850">
+              {categories.length === 0 ? (
+                <tr>
+                  <td colSpan="4" className="text-center py-10 text-gray-400">No categories registered.</td>
+                </tr>
+              ) : (
+                categories.map((cat) => (
+                  <tr key={cat.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-900/25">
+                    <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">
+                      {cat.name}
+                    </td>
+                    <td className="px-6 py-4 text-gray-500 max-w-sm truncate">
+                      {cat.description || <span className="text-gray-300 dark:text-gray-650">—</span>}
+                    </td>
+                    <td className="px-6 py-4 font-medium text-gray-800 dark:text-gray-200">
+                      {cat._count?.assets || 0} registered assets
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-1.5">
+                        <button
+                          onClick={() => handleEdit(cat)}
+                          className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 dark:border-gray-800 text-gray-500 hover:text-gray-700 cursor-pointer"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(cat.id)}
+                          className="p-1.5 rounded-lg border border-red-200 hover:bg-red-50 dark:border-red-950/20 text-red-500 hover:text-red-700 cursor-pointer"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Modal Dialog */}
+      {/* Add / Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#111827] rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-gray-150 dark:border-gray-800 flex flex-col gap-6 text-left animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                {isEditing ? 'Edit Category' : 'Create Category'}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-gray-150 bg-white p-6 shadow-2xl dark:border-gray-850 dark:bg-gray-950">
+            <div className="flex items-center justify-between pb-4 border-b border-gray-150 dark:border-gray-850">
+              <h3 className="font-display text-lg font-bold">
+                {editingId ? 'Edit Category' : 'Add Category'}
               </h3>
-              <button
-                onClick={closeModal}
-                className="p-1 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 transition-all cursor-pointer"
-              >
-                <X size={20} />
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-700">
+                <X className="h-6 w-6" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-gray-400 uppercase">Category Name</label>
+            {error && (
+              <div className="mt-4 p-3 rounded-xl border border-red-200 bg-red-50 text-xs text-red-650">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Category Name</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Printer"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 text-sm text-gray-900 dark:text-white"
+                  placeholder="e.g. Laptops, Vehicles, Office Chairs"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 p-2.5 text-sm dark:border-gray-800 dark:bg-gray-900"
                 />
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-gray-400 uppercase">Description</label>
+              <div>
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Description</label>
                 <textarea
-                  required
-                  placeholder="Summarize asset classification parameters"
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  placeholder="Category specifications..."
                   rows="3"
-                  className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 text-sm text-gray-900 dark:text-white resize-none"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 p-2.5 text-sm dark:border-gray-800 dark:bg-gray-900"
                 />
               </div>
 
-              <button
-                type="submit"
-                className="w-full mt-2 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-600/25 transition-all text-sm cursor-pointer"
-              >
-                {isEditing ? 'Save Changes' : 'Create Category'}
-              </button>
+              <div className="flex gap-3 justify-end pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold hover:bg-gray-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-primary-500 cursor-pointer"
+                >
+                  {editingId ? 'Save Changes' : 'Create'}
+                </button>
+              </div>
             </form>
           </div>
         </div>
       )}
-
     </div>
   );
-}
+};
+
+export default Categories;
