@@ -27,13 +27,36 @@ async function getAllAssets(req, res, next) {
     if (condition) filter.condition = condition;
     if (location) filter.location = { contains: location };
 
-    if (search) {
-      filter.OR = [
-        { assetTag: { contains: search } },
-        { name: { contains: search } },
-        { serialNumber: { contains: search } },
-        { location: { contains: search } },
+    if (req.user.role === 'DEPARTMENT_HEAD') {
+      const deptId = req.user.departmentId;
+      filter.AND = [
+        {
+          OR: [
+            { isShared: true },
+            { allocations: { some: { employee: { departmentId: deptId }, status: 'ACTIVE' } } }
+          ]
+        }
       ];
+      
+      if (search) {
+        filter.AND.push({
+          OR: [
+            { assetTag: { contains: search } },
+            { name: { contains: search } },
+            { serialNumber: { contains: search } },
+            { location: { contains: search } },
+          ]
+        });
+      }
+    } else {
+      if (search) {
+        filter.OR = [
+          { assetTag: { contains: search } },
+          { name: { contains: search } },
+          { serialNumber: { contains: search } },
+          { location: { contains: search } },
+        ];
+      }
     }
 
     const assets = await prisma.asset.findMany({
@@ -91,6 +114,16 @@ async function getAssetById(req, res, next) {
 
     if (!asset) {
       return sendError(res, 'Asset not found', 404);
+    }
+
+    if (req.user.role === 'DEPARTMENT_HEAD') {
+      const isShared = asset.isShared;
+      const isAllocatedInDept = asset.allocations.some(
+        (alloc) => alloc.status === 'ACTIVE' && alloc.employee.departmentId === req.user.departmentId
+      );
+      if (!isShared && !isAllocatedInDept) {
+        return sendError(res, 'Access denied: cannot view asset details outside your department', 403);
+      }
     }
 
     return sendSuccess(res, 'Asset retrieved successfully', asset);

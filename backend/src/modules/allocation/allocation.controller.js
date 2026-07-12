@@ -3,7 +3,13 @@ const { sendSuccess, sendError, logActivity, createNotification } = require('../
 
 async function getAllAllocations(req, res, next) {
   try {
+    const filter = {};
+    if (req.user.role === 'DEPARTMENT_HEAD') {
+      filter.employee = { departmentId: req.user.departmentId };
+    }
+
     const allocations = await prisma.assetAllocation.findMany({
+      where: filter,
       include: {
         asset: { include: { category: true } },
         employee: { select: { id: true, name: true, email: true, department: true } },
@@ -247,6 +253,15 @@ async function approveTransfer(req, res, next) {
       return sendError(res, 'Target employee not found', 404);
     }
 
+    // Security check: if department head, check department matching
+    if (req.user.role === 'DEPARTMENT_HEAD') {
+      const isEmployeeInDept = allocation.employee.departmentId === req.user.departmentId;
+      const isTargetInDept = targetEmployee.departmentId === req.user.departmentId;
+      if (!isEmployeeInDept && !isTargetInDept) {
+        return sendError(res, 'Access denied: cannot approve transfer outside your department', 403);
+      }
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       // 1. Close current allocation
       await tx.assetAllocation.update({
@@ -294,6 +309,61 @@ async function approveTransfer(req, res, next) {
   }
 }
 
+async function rejectTransfer(req, res, next) {
+  try {
+    const id = parseInt(req.params.id);
+
+    const allocation = await prisma.assetAllocation.findUnique({
+      where: { id },
+      include: { asset: true, employee: true },
+    });
+
+    if (!allocation) {
+      return sendError(res, 'Allocation record not found', 404);
+    }
+
+    if (allocation.status !== 'PENDING_TRANSFER') {
+      return sendError(res, 'No pending transfer request found for this allocation', 400);
+    }
+
+    // Security check: if department head, check department matching
+    if (req.user.role === 'DEPARTMENT_HEAD') {
+      const isEmployeeInDept = allocation.employee.departmentId === req.user.departmentId;
+      const isTargetInDept = await prisma.user.findFirst({
+        where: { id: allocation.transferRequestedTo, departmentId: req.user.departmentId }
+      });
+      if (!isEmployeeInDept && !isTargetInDept) {
+        return sendError(res, 'Access denied: cannot reject transfer outside your department', 403);
+      }
+    }
+
+    const updated = await prisma.assetAllocation.update({
+      where: { id },
+      data: {
+        status: 'ACTIVE',
+        transferRequestedTo: null,
+      },
+    });
+
+    await logActivity(
+      req.user.id,
+      'REJECT_TRANSFER',
+      'ALLOCATION',
+      `Rejected transfer of asset ${allocation.asset.assetTag} from ${allocation.employee.name}`
+    );
+
+    await createNotification(
+      allocation.employeeId,
+      'Asset Transfer Rejected',
+      `Transfer request for "${allocation.asset.name}" (${allocation.asset.assetTag}) has been rejected.`
+    );
+
+    return sendSuccess(res, 'Asset transfer rejected successfully', updated);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   getAllAllocations,
   getAllocationsByEmployee,
@@ -301,4 +371,5 @@ module.exports = {
   returnAsset,
   requestTransfer,
   approveTransfer,
+  rejectTransfer,
 };

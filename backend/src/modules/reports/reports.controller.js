@@ -3,17 +3,39 @@ const { sendSuccess, sendError } = require('../../utils/helpers');
 
 async function getDashboardKPIs(req, res, next) {
   try {
-    const totalAssets = await prisma.asset.count();
-    const availableAssets = await prisma.asset.count({ where: { status: 'AVAILABLE' } });
-    const allocatedAssets = await prisma.asset.count({ where: { status: 'ALLOCATED' } });
-    const maintenanceAssets = await prisma.asset.count({ where: { status: 'UNDER_MAINTENANCE' } });
+    let totalAssets, availableAssets, allocatedAssets, maintenanceAssets, activeBookings, upcomingBookings, pendingTransfers;
+    const activitiesFilter = {};
 
-    const activeBookings = await prisma.booking.count({ where: { status: 'ONGOING' } });
-    const upcomingBookings = await prisma.booking.count({ where: { status: 'UPCOMING' } });
-    const pendingTransfers = await prisma.assetAllocation.count({ where: { status: 'PENDING_TRANSFER' } });
+    if (req.user.role === 'DEPARTMENT_HEAD') {
+      const deptId = req.user.departmentId;
+      totalAssets = await prisma.asset.count({
+        where: {
+          OR: [
+            { isShared: true },
+            { allocations: { some: { employee: { departmentId: deptId }, status: 'ACTIVE' } } }
+          ]
+        }
+      });
+      availableAssets = await prisma.asset.count({ where: { status: 'AVAILABLE', isShared: true } });
+      allocatedAssets = await prisma.assetAllocation.count({ where: { employee: { departmentId: deptId }, status: 'ACTIVE' } });
+      maintenanceAssets = await prisma.maintenanceRequest.count({ where: { employee: { departmentId: deptId }, status: { in: ['PENDING', 'APPROVED', 'TECHNICIAN_ASSIGNED', 'IN_PROGRESS'] } } });
+      activeBookings = await prisma.booking.count({ where: { employee: { departmentId: deptId }, status: 'ONGOING' } });
+      upcomingBookings = await prisma.booking.count({ where: { employee: { departmentId: deptId }, status: 'UPCOMING' } });
+      pendingTransfers = await prisma.assetAllocation.count({ where: { employee: { departmentId: deptId }, status: 'PENDING_TRANSFER' } });
+      activitiesFilter.user = { departmentId: deptId };
+    } else {
+      totalAssets = await prisma.asset.count();
+      availableAssets = await prisma.asset.count({ where: { status: 'AVAILABLE' } });
+      allocatedAssets = await prisma.asset.count({ where: { status: 'ALLOCATED' } });
+      maintenanceAssets = await prisma.asset.count({ where: { status: 'UNDER_MAINTENANCE' } });
+      activeBookings = await prisma.booking.count({ where: { status: 'ONGOING' } });
+      upcomingBookings = await prisma.booking.count({ where: { status: 'UPCOMING' } });
+      pendingTransfers = await prisma.assetAllocation.count({ where: { status: 'PENDING_TRANSFER' } });
+    }
 
     // Recent activities (limit 5)
     const recentActivities = await prisma.activityLog.findMany({
+      where: activitiesFilter,
       take: 5,
       orderBy: { createdAt: 'desc' },
       include: {
@@ -591,6 +613,29 @@ async function handleDemoSimulation(req, res, next) {
   }
 }
 
+async function getActivityLogs(req, res, next) {
+  try {
+    const { userId, module, action } = req.query;
+
+    const filter = {};
+    if (userId) filter.userId = parseInt(userId);
+    if (module) filter.module = module;
+    if (action) filter.action = action;
+
+    const logs = await prisma.activityLog.findMany({
+      where: filter,
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return sendSuccess(res, 'Activity logs retrieved successfully', logs);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   getDashboardKPIs,
   getChartsData,
@@ -598,4 +643,5 @@ module.exports = {
   exportAssetsCSV,
   handleChatQuery,
   handleDemoSimulation,
+  getActivityLogs,
 };
