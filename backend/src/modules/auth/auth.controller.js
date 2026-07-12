@@ -106,8 +106,6 @@ async function login(req, res, next) {
     }
     const sanitizedEmail = rawEmail.trim().toLowerCase();
 
-    const sanitizedEmail = email.toLowerCase().trim();
-
     // Double check admin seed in case DB was reset
     await checkAndCreateAdmin();
 
