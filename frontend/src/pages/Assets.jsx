@@ -9,7 +9,7 @@ import {
   SlidersHorizontal,
   FileCode2,
   Calendar,
-  DollarSign,
+  IndianRupee,
   MapPin,
   Maximize2,
   X,
@@ -365,8 +365,8 @@ const Assets = () => {
                     <span>Bought: {new Date(selectedAsset.acquisitionDate).toLocaleDateString()}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <DollarSign className="h-4.5 w-4.5 text-gray-400" />
-                    <span>Cost: ${selectedAsset.acquisitionCost}</span>
+                    <IndianRupee className="h-4.5 w-4.5 text-gray-400" />
+                    <span>Cost: ₹{selectedAsset.acquisitionCost.toLocaleString('en-IN')}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     <MapPin className="h-4.5 w-4.5 text-gray-400" />
@@ -534,12 +534,12 @@ const Assets = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Cost ($)</label>
+                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Cost (₹)</label>
                   <input
                     type="number"
                     step="0.01"
                     required
-                    placeholder="e.g. 1499.00"
+                    placeholder="e.g. 50000"
                     value={formData.acquisitionCost}
                     onChange={(e) => setFormData({ ...formData, acquisitionCost: e.target.value })}
                     className="w-full rounded-xl border border-gray-200 p-2.5 text-sm dark:border-gray-800 dark:bg-gray-900"

@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Start seeding...');
+  console.log('Start seeding Indian database...');
 
   // 1. Clean database
   await prisma.activityLog.deleteMany({});
@@ -18,15 +18,15 @@ async function main() {
 
   console.log('Database cleaned.');
 
-  // 2. Create Departments
+  // 2. Create Departments (Indian Context)
   const engineering = await prisma.department.create({
-    data: { name: 'Engineering', description: 'Software and Hardware development team', status: 'ACTIVE' },
+    data: { name: 'Engineering (Bengaluru Hub)', description: 'Software and Hardware development team', status: 'ACTIVE' },
   });
   const sales = await prisma.department.create({
-    data: { name: 'Sales & Marketing', description: 'Global client outreach and advertisements', status: 'ACTIVE' },
+    data: { name: 'Sales & Marketing (Mumbai Office)', description: 'Global client outreach and advertisements', status: 'ACTIVE' },
   });
   const hr = await prisma.department.create({
-    data: { name: 'Human Resources', description: 'Talent acquisition and employee relations', status: 'ACTIVE' },
+    data: { name: 'Human Resources (Delhi NCR)', description: 'Talent acquisition and employee relations', status: 'ACTIVE' },
   });
 
   console.log('Departments created.');
@@ -47,7 +47,7 @@ async function main() {
 
   console.log('Categories created.');
 
-  // 4. Create Users (hashed passwords)
+  // 4. Create Users (hashed passwords, Indian names)
   const salt = await bcrypt.genSalt(10);
   const passwordAdmin = await bcrypt.hash('admin123', salt);
   const passwordManager = await bcrypt.hash('manager123', salt);
@@ -65,7 +65,7 @@ async function main() {
 
   const managerUser = await prisma.user.create({
     data: {
-      name: 'John Asset Manager',
+      name: 'Rahul Sharma',
       email: 'manager@assetflow.com',
       password: passwordManager,
       role: 'ASSET_MANAGER',
@@ -76,7 +76,7 @@ async function main() {
 
   const employeeUser1 = await prisma.user.create({
     data: {
-      name: 'Alice Cooper',
+      name: 'Ananya Iyer',
       email: 'alice@assetflow.com',
       password: passwordEmployee,
       role: 'EMPLOYEE',
@@ -87,7 +87,7 @@ async function main() {
 
   const employeeUser2 = await prisma.user.create({
     data: {
-      name: 'Bob Marley',
+      name: 'Amit Patel',
       email: 'bob@assetflow.com',
       password: passwordEmployee,
       role: 'EMPLOYEE',
@@ -98,17 +98,17 @@ async function main() {
 
   console.log('Users created.');
 
-  // 5. Create Assets
+  // 5. Create Assets (Indian Context, Cost in INR)
   const asset1 = await prisma.asset.create({
     data: {
       assetTag: 'AST-001',
-      name: 'MacBook Pro 16" M3 Max',
+      name: 'MacBook Pro 14" M3',
       categoryId: laptops.id,
       serialNumber: 'C02F1234Q05D',
       acquisitionDate: new Date('2025-01-10'),
-      acquisitionCost: 3499.00,
+      acquisitionCost: 199900.00, // INR
       condition: 'NEW',
-      location: 'HQ SF - Desk 12',
+      location: 'Bengaluru Hub - Desk 12',
       isShared: false,
       status: 'AVAILABLE',
     },
@@ -117,13 +117,13 @@ async function main() {
   const asset2 = await prisma.asset.create({
     data: {
       assetTag: 'AST-002',
-      name: 'Dell XPS 15 9530',
+      name: 'Dell Latitude 5440',
       categoryId: laptops.id,
       serialNumber: 'DELL-987654321',
       acquisitionDate: new Date('2023-05-15'),
-      acquisitionCost: 1999.00,
+      acquisitionCost: 95000.00, // INR
       condition: 'POOR',
-      location: 'HQ SF - Desk 14',
+      location: 'Bengaluru Hub - Desk 14',
       isShared: false,
       status: 'ALLOCATED',
     },
@@ -132,13 +132,13 @@ async function main() {
   const asset3 = await prisma.asset.create({
     data: {
       assetTag: 'AST-003',
-      name: 'Boardroom Delta (Level 3)',
+      name: 'Boardroom Kohinoor (Floor 3)',
       categoryId: meetingRooms.id,
-      serialNumber: 'ROOM-DELTA-L3',
+      serialNumber: 'ROOM-KOHINOOR-F3',
       acquisitionDate: new Date('2022-01-01'),
-      acquisitionCost: 12000.00,
+      acquisitionCost: 850000.00, // INR
       condition: 'GOOD',
-      location: 'HQ NY - Floor 3',
+      location: 'Mumbai Office - Floor 3',
       isShared: true,
       status: 'AVAILABLE',
     },
@@ -147,13 +147,13 @@ async function main() {
   const asset4 = await prisma.asset.create({
     data: {
       assetTag: 'AST-004',
-      name: 'Tesla Model 3 Pool Car',
+      name: 'Tata Nexon EV Pool Car',
       categoryId: vehicles.id,
-      serialNumber: '5YJ3E1EBXLF123456',
+      serialNumber: '9YJ3E1EBXLF123456',
       acquisitionDate: new Date('2024-06-20'),
-      acquisitionCost: 39990.00,
+      acquisitionCost: 1650000.00, // INR
       condition: 'GOOD',
-      location: 'SF Garage - Bay 4',
+      location: 'Mumbai Office - Garage Bay 4',
       isShared: true,
       status: 'AVAILABLE',
     },
@@ -162,13 +162,13 @@ async function main() {
   const asset5 = await prisma.asset.create({
     data: {
       assetTag: 'AST-005',
-      name: 'HP LaserJet Enterprise M507',
+      name: 'HP LaserJet Pro MFP',
       categoryId: printers.id,
-      serialNumber: 'HP-LJM507-99',
+      serialNumber: 'HP-LJPRO-99',
       acquisitionDate: new Date('2021-03-12'),
-      acquisitionCost: 899.00,
+      acquisitionCost: 45000.00, // INR
       condition: 'FAIR',
-      location: 'HQ SF - Copier Room',
+      location: 'Delhi NCR - Copier Room',
       isShared: true,
       status: 'UNDER_MAINTENANCE',
     },
@@ -176,8 +176,7 @@ async function main() {
 
   console.log('Assets registered.');
 
-  // 6. Create Asset Allocation History
-  // Allocating AST-002 Dell XPS to Bob Marley
+  // 6. Create Asset Allocation History (Amit Patel)
   const allocation = await prisma.assetAllocation.create({
     data: {
       assetId: asset2.id,
@@ -189,8 +188,7 @@ async function main() {
 
   console.log('Asset allocations seeded.');
 
-  // 7. Create Resource Bookings
-  // Booking Boardroom Delta for Alice Cooper
+  // 7. Create Resource Bookings (Ananya Iyer)
   const booking1 = await prisma.booking.create({
     data: {
       assetId: asset3.id,
@@ -202,7 +200,6 @@ async function main() {
     },
   });
 
-  // Past booking
   const booking2 = await prisma.booking.create({
     data: {
       assetId: asset3.id,
@@ -216,7 +213,7 @@ async function main() {
 
   console.log('Bookings seeded.');
 
-  // 8. Create Maintenance Request
+  // 8. Create Maintenance Request (Ananya Iyer)
   const maintenance = await prisma.maintenanceRequest.create({
     data: {
       assetId: asset5.id,
@@ -224,7 +221,7 @@ async function main() {
       description: 'Paper jams constantly and prints double images on legal sheets.',
       priority: 'HIGH',
       status: 'IN_PROGRESS',
-      technicianName: 'Xerox Support Group',
+      technicianName: 'HP India Support Group',
     },
   });
 
@@ -232,18 +229,18 @@ async function main() {
 
   // 9. Add Activity Logs
   await prisma.activityLog.create({
-    data: { userId: adminUser.id, action: 'CREATE', module: 'DEPARTMENT', details: 'Seeded initial departments' },
+    data: { userId: adminUser.id, action: 'CREATE', module: 'DEPARTMENT', details: 'Seeded initial Indian departments' },
   });
   await prisma.activityLog.create({
-    data: { userId: adminUser.id, action: 'CREATE', module: 'ASSETS', details: 'Seeded core inventory assets' },
+    data: { userId: adminUser.id, action: 'CREATE', module: 'ASSETS', details: 'Seeded core inventory assets in INR' },
   });
   await prisma.activityLog.create({
-    data: { userId: employeeUser2.id, action: 'ALLOCATE', module: 'ALLOCATION', details: 'Assigned AST-002 to Bob Marley' },
+    data: { userId: employeeUser2.id, action: 'ALLOCATE', module: 'ALLOCATION', details: 'Assigned AST-002 to Amit Patel' },
   });
 
   // 10. Add Notification
   await prisma.notification.create({
-    data: { userId: employeeUser2.id, title: 'Asset Assigned', message: 'You have been allocated Dell XPS 15 (AST-002).' },
+    data: { userId: employeeUser2.id, title: 'Asset Assigned', message: 'You have been allocated Dell Latitude 5440 (AST-002).' },
   });
 
   console.log('Seeding finished successfully.');

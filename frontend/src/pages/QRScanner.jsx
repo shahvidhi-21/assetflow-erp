@@ -13,8 +13,12 @@ const QRScanner = () => {
 
   // Success handler for camera scan
   const onScanSuccess = async (decodedText) => {
-    if (decodedText.startsWith('AST-')) {
-      setScanResult(decodedText);
+    const trimmed = decodedText.trim();
+    const isNumeric = /^\d+$/.test(trimmed);
+    const isTag = trimmed.startsWith('AST-');
+
+    if (isTag || isNumeric) {
+      setScanResult(trimmed);
       // Stop scanner upon successful detection to prevent duplicate API hits
       if (scannerRef.current) {
         try {
@@ -23,9 +27,13 @@ const QRScanner = () => {
           console.warn('Failed to clear scanner:', e);
         }
       }
-      handleLookup(decodedText);
+      if (isNumeric) {
+        handleLookupById(trimmed);
+      } else {
+        handleLookupByTag(trimmed);
+      }
     } else {
-      setError('Invalid QR code format. Must start with "AST-".');
+      setError('Invalid QR code format. Must be an Asset Tag (starts with "AST-") or a numeric Asset ID.');
     }
   };
 
@@ -57,7 +65,7 @@ const QRScanner = () => {
     };
   }, []);
 
-  const handleLookup = async (tag) => {
+  const handleLookupByTag = async (tag) => {
     setError('');
     setLoading(true);
     setAssetDetails(null);
@@ -71,11 +79,29 @@ const QRScanner = () => {
     }
   };
 
+  const handleLookupById = async (id) => {
+    setError('');
+    setLoading(true);
+    setAssetDetails(null);
+    try {
+      const response = await api.get(`/assets/${id}`);
+      setAssetDetails(response.data.data);
+    } catch (err) {
+      setError(err.response?.data?.message || `Asset with ID ${id} not found.`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleManualSearch = (e) => {
     e.preventDefault();
     if (!manualTag) return;
-    const uppercaseTag = manualTag.trim().toUpperCase();
-    handleLookup(uppercaseTag);
+    const trimmed = manualTag.trim();
+    if (/^\d+$/.test(trimmed)) {
+      handleLookupById(trimmed);
+    } else {
+      handleLookupByTag(trimmed.toUpperCase());
+    }
   };
 
   const handleQuickReturn = async () => {
@@ -202,9 +228,14 @@ const QRScanner = () => {
             <div className="rounded-3xl border border-gray-150 bg-white p-6 dark:border-gray-800 dark:bg-gray-950 shadow-sm space-y-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <span className="font-mono font-bold text-xs bg-primary-100 text-primary-700 px-3 py-1 rounded-full dark:bg-primary-950/40 dark:text-primary-400">
-                    {assetDetails.assetTag}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-xs bg-primary-100 text-primary-700 px-3 py-1 rounded-full dark:bg-primary-950/40 dark:text-primary-400">
+                      {assetDetails.assetTag}
+                    </span>
+                    <span className="font-mono font-bold text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-full dark:bg-gray-800 dark:text-gray-300">
+                      ID: {assetDetails.id}
+                    </span>
+                  </div>
                   <h3 className="font-display text-xl font-bold text-gray-900 dark:text-white mt-2">
                     {assetDetails.name}
                   </h3>

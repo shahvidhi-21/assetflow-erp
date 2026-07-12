@@ -102,7 +102,7 @@ const Reports = () => {
             <div className="space-y-1">
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Book Value (Depreciated)</span>
               <h3 className="font-display text-3xl font-extrabold tracking-tight text-gray-950 dark:text-white">
-                ${financials.currentDepreciatedValue.toLocaleString()}
+                ₹{financials.currentDepreciatedValue.toLocaleString('en-IN')}
               </h3>
             </div>
             <div className="p-2.5 rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-400">
@@ -110,7 +110,7 @@ const Reports = () => {
             </div>
           </div>
           <div className="text-xs text-gray-500">
-            Computed using Straight Line depreciation (20% per year). Original purchase price: <span className="font-bold">${financials.totalOriginalValue.toLocaleString()}</span>
+            Computed using Straight Line depreciation (20% per year). Original purchase price: <span className="font-bold">₹{financials.totalOriginalValue.toLocaleString('en-IN')}</span>
           </div>
         </div>
 
@@ -191,7 +191,7 @@ const Reports = () => {
                     <p className="text-xs text-gray-500 mt-0.5">Asset Age: {item.ageYears} years</p>
                   </div>
                   <div className="text-right">
-                    <span className="text-xs font-bold">${item.cost.toLocaleString()}</span>
+                    <span className="text-xs font-bold">₹{item.cost.toLocaleString('en-IN')}</span>
                     <p className="text-[10px] font-semibold text-gray-400">Orig. Cost</p>
                   </div>
                 </div>
