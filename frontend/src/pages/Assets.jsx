@@ -236,9 +236,9 @@ export default function Assets() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-gray-400 uppercase">Acquisition Cost (USD)</label>
+                <label className="text-xs font-bold text-gray-400 uppercase">Acquisition Cost (INR)</label>
                 <input
-                  type="number" required placeholder="e.g. 1500" value={form.acquisitionCost}
+                  type="number" required placeholder="e.g. 50000" value={form.acquisitionCost}
                   onChange={(e) => setForm({ ...form, acquisitionCost: e.target.value })}
                   className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 text-sm text-gray-900 dark:text-white"
                 />
