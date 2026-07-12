@@ -1,0 +1,161 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  ASSET_MANAGER
+  DEPARTMENT_HEAD
+  EMPLOYEE
+}
+
+enum AssetStatus {
+  AVAILABLE
+  ALLOCATED
+  RESERVED
+  UNDER_MAINTENANCE
+  LOST
+  RETIRED
+  DISPOSED
+}
+
+enum BookingStatus {
+  UPCOMING
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum MaintenanceStatus {
+  PENDING
+  APPROVED
+  TECHNICIAN_ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+}
+
+model User {
+  id                  Int                  @id @default(autoincrement())
+  name                String
+  email               String               @unique
+  password            String
+  role                Role                 @default(EMPLOYEE)
+  status              String               @default("ACTIVE") // ACTIVE, INACTIVE
+  departmentId        Int?
+  department          Department?          @relation(fields: [departmentId], references: [id])
+  allocations         AssetAllocation[]
+  bookings            Booking[]
+  maintenanceRequests MaintenanceRequest[]
+  notifications       Notification[]
+  activityLogs        ActivityLog[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+}
+
+model Department {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  status      String   @default("ACTIVE") // ACTIVE, INACTIVE
+  employees   User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  assets      Asset[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Asset {
+  id                  Int                  @id @default(autoincrement())
+  assetTag            String               @unique // Auto-generated AST-XXXX
+  name                String
+  categoryId          Int
+  category            Category             @relation(fields: [categoryId], references: [id])
+  serialNumber        String               @unique
+  acquisitionDate     DateTime
+  acquisitionCost     Float
+  condition           String               @default("GOOD") // NEW, GOOD, FAIR, POOR
+  location            String
+  image               String?
+  isShared            Boolean              @default(false)
+  status              AssetStatus          @default(AVAILABLE)
+  allocations         AssetAllocation[]
+  bookings            Booking[]
+  maintenanceRequests MaintenanceRequest[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+}
+
+model AssetAllocation {
+  id                  Int       @id @default(autoincrement())
+  assetId             Int
+  asset               Asset     @relation(fields: [assetId], references: [id])
+  employeeId          Int
+  employee            User      @relation(fields: [employeeId], references: [id])
+  allocatedDate       DateTime  @default(now())
+  returnDate          DateTime?
+  status              String    @default("ACTIVE") // ACTIVE, RETURNED, TRANSFERRED
+  transferRequestedTo Int?      // Employee ID to transfer to
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+model Booking {
+  id           Int           @id @default(autoincrement())
+  assetId      Int
+  asset        Asset         @relation(fields: [assetId], references: [id])
+  employeeId   Int
+  employee     User          @relation(fields: [employeeId], references: [id])
+  bookingDate  DateTime      @default(now())
+  startTime    DateTime
+  endTime      DateTime
+  status       BookingStatus @default(UPCOMING)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model MaintenanceRequest {
+  id             Int               @id @default(autoincrement())
+  assetId        Int
+  asset          Asset             @relation(fields: [assetId], references: [id])
+  employeeId     Int
+  employee       User              @relation(fields: [employeeId], references: [id])
+  description    String
+  priority       String            @default("MEDIUM") // LOW, MEDIUM, HIGH
+  status         MaintenanceStatus @default(PENDING)
+  technicianName String?
+  completedDate  DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  module    String
+  details   String?
+  createdAt DateTime @default(now())
+}

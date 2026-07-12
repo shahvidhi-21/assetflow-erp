@@ -1,0 +1,545 @@
+Product Requirements Document (PRD)
+Project Name
+
+AssetFlow – Enterprise Asset & Resource Management System
+
+1. Project Overview
+
+AssetFlow is a web-based Enterprise Asset & Resource Management System that enables organizations to manage physical assets and shared resources from a centralized platform.
+
+Organizations often use spreadsheets to track laptops, furniture, projectors, meeting rooms, vehicles, and other assets. This leads to duplicate allocations, missing assets, scheduling conflicts, and poor maintenance tracking.
+
+AssetFlow solves these problems by providing role-based asset management, allocation, booking, maintenance workflows, and reporting.
+
+2. Objective
+
+Develop a scalable full-stack web application where organizations can:
+
+Manage departments and employees
+Register company assets
+Track the complete lifecycle of every asset
+Allocate assets to employees
+Prevent duplicate allocations
+Book shared resources without scheduling conflicts
+Manage maintenance requests
+View dashboards and reports
+Maintain activity logs
+3. Tech Stack
+Frontend
+React.js (Vite)
+Tailwind CSS
+React Router
+Axios
+Recharts
+Backend
+Node.js
+Express.js
+JWT Authentication
+bcrypt
+Multer
+Database
+MySQL
+ORM
+Prisma
+4. User Roles
+Admin
+
+Permissions
+
+Manage Departments
+Manage Categories
+Manage Employees
+Assign Roles
+View Dashboard
+View Reports
+Asset Manager
+
+Permissions
+
+Register Assets
+Allocate Assets
+Approve Transfers
+Approve Maintenance Requests
+Approve Asset Returns
+Department Head
+
+Permissions
+
+View Department Assets
+Approve Department Transfers
+Book Shared Resources
+Employee
+
+Permissions
+
+View Assigned Assets
+Book Resources
+Raise Maintenance Requests
+Request Asset Return
+Request Asset Transfer
+5. Core Modules
+Module 1
+Authentication
+
+Features
+
+Login
+Signup
+JWT Authentication
+Password Hashing
+Forgot Password (optional)
+
+Business Rules
+
+Every signup creates an Employee account.
+No role selection during signup.
+Only Admin can assign roles.
+Module 2
+Dashboard
+
+Display KPI Cards
+
+Total Assets
+Available Assets
+Allocated Assets
+Under Maintenance
+Active Bookings
+Pending Transfers
+Upcoming Returns
+
+Display Charts
+
+Asset Status Distribution
+Department-wise Allocation
+Maintenance Statistics
+
+Recent Activities
+
+Quick Actions
+
+Notifications
+
+Module 3
+Department Management
+
+CRUD
+
+Fields
+
+Department Name
+Description
+Status
+Module 4
+Asset Categories
+
+CRUD
+
+Fields
+
+Category Name
+Description
+
+Examples
+
+Laptop
+Furniture
+Vehicle
+Electronics
+Printer
+Module 5
+Employee Directory
+
+Fields
+
+Name
+Email
+Department
+Role
+Status
+
+Admin can promote employees.
+
+Module 6
+Asset Management
+
+Register Assets
+
+Fields
+
+Asset Tag (Auto Generated)
+Asset Name
+Category
+Serial Number
+Acquisition Date
+Acquisition Cost
+Condition
+Location
+Image
+Shared Resource Flag
+Status
+
+Asset Status
+
+Available
+Allocated
+Reserved
+Under Maintenance
+Lost
+Retired
+Disposed
+
+Search By
+
+Asset Tag
+Category
+Department
+Status
+Serial Number
+Location
+
+Maintain complete asset history.
+
+Module 7
+Asset Allocation
+
+Allocate asset to employee.
+
+Business Rules
+
+One asset cannot be allocated to multiple employees.
+If asset is already allocated, reject request.
+Allow return workflow.
+Allow transfer workflow.
+Store allocation history.
+Module 8
+Resource Booking
+
+Book
+
+Meeting Rooms
+Vehicles
+Projectors
+Shared Equipment
+
+Fields
+
+Resource
+Date
+Start Time
+End Time
+
+Business Rules
+
+Prevent overlapping bookings.
+Allow cancel.
+Allow reschedule.
+
+Statuses
+
+Upcoming
+Ongoing
+Completed
+Cancelled
+Module 9
+Maintenance
+
+Employee raises maintenance request.
+
+Workflow
+
+Pending
+
+↓
+
+Approved
+
+↓
+
+Technician Assigned
+
+↓
+
+In Progress
+
+↓
+
+Completed
+
+Business Rules
+
+Asset automatically changes to "Under Maintenance"
+After completion asset changes to "Available"
+
+Maintain maintenance history.
+
+Module 10
+Reports
+
+Generate
+
+Department-wise Allocation
+Asset Utilization
+Most Used Assets
+Idle Assets
+Maintenance Frequency
+Booking Statistics
+
+Export CSV
+
+Export PDF (optional)
+
+Module 11
+Notifications
+
+Examples
+
+Asset Assigned
+Booking Confirmed
+Maintenance Approved
+Return Reminder
+Transfer Approved
+Module 12
+Activity Logs
+
+Store
+
+User
+Action
+Date
+Time
+Module
+6. Database Models
+
+Create Prisma Models
+
+User
+Role
+Department
+Category
+Asset
+AssetAllocation
+Booking
+MaintenanceRequest
+Notification
+ActivityLog
+
+Use proper foreign keys and relationships.
+
+7. Backend Requirements
+
+Use MVC Architecture.
+
+Folder Structure
+
+backend/
+
+src/
+
+modules/
+
+auth/
+
+users/
+
+departments/
+
+categories/
+
+assets/
+
+allocation/
+
+bookings/
+
+maintenance/
+
+reports/
+
+middleware/
+
+utils/
+
+prisma/
+
+app.js
+
+server.js
+
+Implement REST APIs.
+
+Use
+
+Express Router
+JWT Middleware
+Role Middleware
+Prisma ORM
+
+Implement validation and centralized error handling.
+
+8. Frontend Requirements
+
+React + Vite
+
+Folder Structure
+
+src/
+
+components/
+
+pages/
+
+layouts/
+
+routes/
+
+hooks/
+
+services/
+
+context/
+
+utils/
+
+Pages
+
+Login
+Signup
+Dashboard
+Departments
+Categories
+Employees
+Assets
+Allocation
+Booking
+Maintenance
+Reports
+Profile
+
+Reusable Components
+
+Sidebar
+Navbar
+Table
+Modal
+Card
+Charts
+9. Business Rules
+
+Authentication
+
+Signup creates Employee.
+Admin assigns roles.
+
+Assets
+
+Asset Tag auto-generated.
+No duplicate Asset Tag.
+
+Allocation
+
+One asset can have only one active allocation.
+
+Booking
+
+Prevent overlapping time slots.
+
+Maintenance
+
+Asset enters maintenance only after approval.
+
+Dashboard
+
+Statistics update automatically after every operation.
+
+Role Access
+
+Admin has full access.
+Asset Manager manages assets.
+Department Head manages department operations.
+Employee accesses only personal information.
+10. Additional Features (Innovation)
+
+Implement these features to improve the project beyond the basic requirements:
+
+QR Code
+
+Generate QR Code for every asset.
+
+Asset Timeline
+
+Display complete asset lifecycle.
+
+Example
+
+Registered
+
+↓
+
+Allocated
+
+↓
+
+Returned
+
+↓
+
+Maintenance
+
+↓
+
+Allocated Again
+
+AI Insights
+
+Generate dashboard insights such as:
+
+Most utilized asset
+Least utilized asset
+Department with highest allocation
+Assets nearing retirement
+Overdue returns
+Smart Dashboard
+
+Include
+
+Charts
+Recent Activity
+Notifications
+Animated KPI Cards
+Advanced Search
+
+Global search across
+
+Assets
+Employees
+Departments
+Dark Mode
+
+Provide light/dark theme.
+
+Activity Timeline
+
+Display all user activities chronologically.
+
+11. Expected Deliverables
+Responsive React Frontend
+REST API Backend
+MySQL Database
+Prisma Schema
+JWT Authentication
+Role-Based Access Control
+Dashboard
+Reports
+Clean Code
+Modular Architecture
+Proper Documentation
+12. Development Guidelines
+Follow clean code principles.
+Use consistent naming conventions.
+Keep modules independent.
+Separate business logic into services.
+Validate all API inputs.
+Handle errors gracefully.
+Write reusable React components.
+Design the system to be extensible after the hackathon.
+

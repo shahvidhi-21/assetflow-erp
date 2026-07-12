@@ -1,0 +1,24 @@
+# Dependencies
+**/node_modules
+/node_modules
+package-lock.json
+
+# Environment Variables
+.env
+**/.env
+
+# Local Databases
+*.db
+*.db-journal
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
+
+# Production Builds
+dist/
+**/dist
+
+# IDEs and System files
+.DS_Store
+.idea/
+.vscode/
+Thumbs.db
