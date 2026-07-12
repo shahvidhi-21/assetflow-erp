@@ -188,7 +188,7 @@ async function googleLogin(req, res, next) {
 
     // Verify token with Google API endpoint (Secure & requires no external NPM package)
     const googleVerifyUrl = `https://oauth2.googleapis.com/tokeninfo?id_token=${credentialToken}`;
-    
+
     // Node 18+ native fetch
     const response = await fetch(googleVerifyUrl);
     if (!response.ok) {
@@ -275,7 +275,7 @@ async function updateProfile(req, res, next) {
 
     const updateData = {};
     if (name !== undefined) updateData.name = name.trim();
-    
+
     if (email !== undefined) {
       const sanitizedEmail = email.toLowerCase().trim();
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
