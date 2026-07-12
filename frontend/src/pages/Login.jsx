@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, Archive, LineChart, ArrowLeftRight, Check, X, ShieldAlert } from 'lucide-react';
 import Input from '../components/Input';
 import FloatingCard from '../components/FloatingCard';
-import { useAppState } from '../context/StateContext';
+import { useAuth } from '../context/AuthContext';
 import dashboardHero from '../assets/dashboard_hero.png';
 
 export default function Login() {
@@ -14,7 +14,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState(null);
   const navigate = useNavigate();
-  const { setCurrentUser } = useAppState();
+  const { login } = useAuth();
 
   // Modals state
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -38,48 +38,31 @@ export default function Login() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
     setIsLoading(true);
     setNotification(null);
 
-    // Mock Users Map
-    const userMap = {
-      'admin@assetflow.com': { name: 'Alice Smith', role: 'Admin', department: 'Operations', pass: 'admin123' },
-      'bob@enterprise.com': { name: 'Bob Johnson', role: 'Asset Manager', department: 'Engineering', pass: 'bob123' },
-      'clara@enterprise.com': { name: 'Clara Vance', role: 'Department Head', department: 'Design', pass: 'clara123' },
-      'john@enterprise.com': { name: 'John Doe', role: 'Employee', department: 'Engineering', pass: 'john123' }
-    };
+    const res = await login(email.trim().toLowerCase(), password);
+    setIsLoading(false);
 
-    setTimeout(() => {
-      setIsLoading(false);
-      const matched = userMap[email.toLowerCase()];
+    if (res.success) {
+      setNotification({
+        type: 'success',
+        message: `Welcome back! Redirecting...`,
+      });
 
-      if (matched && matched.pass === password) {
-        setCurrentUser({
-          name: matched.name,
-          email: email.toLowerCase(),
-          role: matched.role,
-          department: matched.department,
-        });
-
-        setNotification({
-          type: 'success',
-          message: `Welcome back, ${matched.name}! Redirecting...`,
-        });
-
-        setTimeout(() => {
-          navigate('/');
-        }, 1000);
-      } else {
-        setNotification({
-          type: 'error',
-          message: 'Invalid email or password. Hint: admin@assetflow.com / admin123',
-        });
-      }
-    }, 1200);
+      setTimeout(() => {
+        navigate('/');
+      }, 1000);
+    } else {
+      setNotification({
+        type: 'error',
+        message: res.message || 'Invalid email or password.',
+      });
+    }
   };
 
   const handleForgotSubmit = (e) => {

@@ -6,6 +6,8 @@ import FloatingCard from '../components/FloatingCard';
 import dashboardHero from '../assets/dashboard_hero.png';
 import { Archive, LineChart, ArrowLeftRight } from 'lucide-react';
 
+import { useAuth } from '../context/AuthContext';
+
 export default function Signup() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -14,8 +16,9 @@ export default function Signup() {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { signup } = useAuth();
 
-  const handleSignup = (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
     const newErrors = {};
 
@@ -41,11 +44,15 @@ export default function Signup() {
     if (Object.keys(newErrors).length > 0) return;
 
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      alert('Signup Successful! Your account has been registered as an Employee. Redirecting to Login...');
-      navigate('/login');
-    }, 1500);
+    const res = await signup(name, email.trim().toLowerCase(), password);
+    setIsLoading(false);
+
+    if (res.success) {
+      alert('Signup Successful! Redirecting to Dashboard...');
+      navigate('/');
+    } else {
+      alert(res.message || 'Signup failed. Please try again.');
+    }
   };
 
   return (

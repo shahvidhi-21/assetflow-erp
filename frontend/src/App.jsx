@@ -17,15 +17,15 @@ import Employees from './pages/Employees';
 import Reports from './pages/Reports';
 import Profile from './pages/Profile';
 
+import ProtectedRoute from './routes/ProtectedRoute';
+
 // Auth Guard Wrapper
-function ProtectedRoute({ children }) {
-  const { currentUser } = useAppState();
-
-  if (!currentUser) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <DashboardLayout>{children}</DashboardLayout>;
+function ProtectedRouteWithLayout({ children, allowedRoles }) {
+  return (
+    <ProtectedRoute allowedRoles={allowedRoles}>
+      <DashboardLayout>{children}</DashboardLayout>
+    </ProtectedRoute>
+  );
 }
 
 function App() {
@@ -40,81 +40,81 @@ function App() {
         <Route
           path="/"
           element={
-            <ProtectedRoute>
+            <ProtectedRouteWithLayout>
               <Dashboard />
-            </ProtectedRoute>
+            </ProtectedRouteWithLayout>
           }
         />
         <Route
           path="/assets"
           element={
-            <ProtectedRoute>
+            <ProtectedRouteWithLayout>
               <Assets />
-            </ProtectedRoute>
+            </ProtectedRouteWithLayout>
           }
         />
         <Route
           path="/allocation"
           element={
-            <ProtectedRoute>
+            <ProtectedRouteWithLayout allowedRoles={['Admin', 'Asset Manager']}>
               <Allocation />
-            </ProtectedRoute>
+            </ProtectedRouteWithLayout>
           }
         />
         <Route
           path="/booking"
           element={
-            <ProtectedRoute>
+            <ProtectedRouteWithLayout>
               <Booking />
-            </ProtectedRoute>
+            </ProtectedRouteWithLayout>
           }
         />
         <Route
           path="/maintenance"
           element={
-            <ProtectedRoute>
+            <ProtectedRouteWithLayout>
               <Maintenance />
-            </ProtectedRoute>
+            </ProtectedRouteWithLayout>
           }
         />
         <Route
           path="/departments"
           element={
-            <ProtectedRoute>
+            <ProtectedRouteWithLayout allowedRoles={['Admin']}>
               <Departments />
-            </ProtectedRoute>
+            </ProtectedRouteWithLayout>
           }
         />
         <Route
           path="/categories"
           element={
-            <ProtectedRoute>
+            <ProtectedRouteWithLayout allowedRoles={['Admin']}>
               <Categories />
-            </ProtectedRoute>
+            </ProtectedRouteWithLayout>
           }
         />
         <Route
           path="/employees"
           element={
-            <ProtectedRoute>
+            <ProtectedRouteWithLayout allowedRoles={['Admin']}>
               <Employees />
-            </ProtectedRoute>
+            </ProtectedRouteWithLayout>
           }
         />
         <Route
           path="/reports"
           element={
-            <ProtectedRoute>
+            <ProtectedRouteWithLayout allowedRoles={['Admin', 'Asset Manager']}>
               <Reports />
-            </ProtectedRoute>
+            </ProtectedRouteWithLayout>
           }
         />
         <Route
           path="/profile"
           element={
-            <ProtectedRoute>
+            <ProtectedRouteWithLayout>
               <Profile />
-            </ProtectedRoute>
+            </ProtectedRouteWithLayout>
           }
         />
 
