@@ -11,7 +11,7 @@ import {
   Users,
   BarChart3,
   LogOut,
-  ScanQrCode,
+  QrCode,
   ShieldCheck,
 } from 'lucide-react';
 
@@ -76,7 +76,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             onClick={() => isOpen && toggleSidebar()}
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 hover:from-primary-500 hover:to-indigo-500 transition-all duration-200 transform active:scale-95 cursor-pointer"
           >
-            <ScanQrCode className="h-4 w-4" />
+            <QrCode className="h-4 w-4" />
             <span>Scan Asset QR</span>
           </NavLink>
         </div>

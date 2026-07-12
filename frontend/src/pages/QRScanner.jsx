@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import api from '../services/api';
-import { ScanQrCode, Box, Search, Wrench, ShieldCheck, RefreshCw, X, AlertTriangle } from 'lucide-react';
+import { QrCode, Box, Search, Wrench, ShieldCheck, RefreshCw, X, AlertTriangle } from 'lucide-react';
 
 const QRScanner = () => {
   const [scanResult, setScanResult] = useState(null);
@@ -121,7 +121,7 @@ const QRScanner = () => {
         {/* Left Card: Camera reader / manual entry */}
         <div className="rounded-3xl border border-gray-150 bg-white p-6 dark:border-gray-800 dark:bg-gray-950 shadow-sm space-y-6">
           <h3 className="font-display text-lg font-bold flex items-center gap-2">
-            <ScanQrCode className="h-5 w-5 text-primary-500" />
+            <QrCode className="h-5 w-5 text-primary-500" />
             <span>Webcam Scanner</span>
           </h3>
 

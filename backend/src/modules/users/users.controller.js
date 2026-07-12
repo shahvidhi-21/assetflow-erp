@@ -10,6 +10,14 @@ async function getAllUsers(req, res, next) {
     if (role) filter.role = role;
     if (status) filter.status = status;
 
+    if (req.user.role === 'DEPARTMENT_HEAD') {
+      if (!req.user.departmentId) {
+        filter.id = req.user.id;
+      } else {
+        filter.departmentId = req.user.departmentId;
+      }
+    }
+
     const users = await prisma.user.findMany({
       where: filter,
       select: {
@@ -57,6 +65,10 @@ async function getUserById(req, res, next) {
 
     if (!user) {
       return sendError(res, 'User not found', 404);
+    }
+
+    if (req.user.role === 'DEPARTMENT_HEAD' && user.departmentId !== req.user.departmentId) {
+      return sendError(res, 'Access denied: user is outside your department', 403);
     }
 
     // Remove password field

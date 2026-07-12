@@ -1,5 +1,5 @@
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -53,6 +53,7 @@ model User {
   maintenanceRequests MaintenanceRequest[]
   notifications       Notification[]
   activityLogs        ActivityLog[]
+  auditCycles         AuditCycle[]         @relation("AuditorRelation")
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 }
@@ -93,6 +94,7 @@ model Asset {
   allocations         AssetAllocation[]
   bookings            Booking[]
   maintenanceRequests MaintenanceRequest[]
+  auditReports        AuditReport[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 }
@@ -158,4 +160,30 @@ model ActivityLog {
   module    String
   details   String?
   createdAt DateTime @default(now())
+}
+
+model AuditCycle {
+  id          Int           @id @default(autoincrement())
+  name        String
+  startDate   DateTime      @default(now())
+  endDate     DateTime?
+  status      String        @default("ACTIVE") // ACTIVE, COMPLETED
+  auditorId   Int
+  auditor     User          @relation("AuditorRelation", fields: [auditorId], references: [id])
+  reports     AuditReport[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model AuditReport {
+  id           Int        @id @default(autoincrement())
+  auditCycleId Int
+  auditCycle   AuditCycle @relation(fields: [auditCycleId], references: [id], onDelete: Cascade)
+  assetId      Int
+  asset        Asset      @relation(fields: [assetId], references: [id])
+  status       String     @default("PENDING") // PENDING, VERIFIED, MISSING, DAMAGED
+  notes        String?
+  verifiedAt   DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }
